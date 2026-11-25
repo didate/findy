@@ -21,6 +21,16 @@
         }
       }
     },
+    "Calculate Folder Sizes" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calculer la taille des dossiers"
+          }
+        }
+      }
+    },
     "Can’t Open This Folder" : {
       "localizations" : {
         "fr" : {

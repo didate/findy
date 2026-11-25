@@ -81,6 +81,38 @@ import Testing
         }
     }
 
+    @Test func sumsFileSizesAtEveryDepthWithoutFollowingLinks() async throws {
+        try await withScratchDirectory { directory in
+            let outside = directory.appendingPathComponent("outside", isDirectory: true)
+            let measured = directory.appendingPathComponent("measured", isDirectory: true)
+            let nested = measured.appendingPathComponent("a/b", isDirectory: true)
+            try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
+            try Data(count: 1_000).write(to: outside.appendingPathComponent("big.bin"))
+            try Data(count: 10).write(to: measured.appendingPathComponent("top.bin"))
+            try Data(count: 20).write(to: nested.appendingPathComponent("deep.bin"))
+            try Data(count: 5).write(to: nested.appendingPathComponent(".hidden"))
+            try FileManager.default.createSymbolicLink(
+                at: measured.appendingPathComponent("link"), withDestinationURL: outside)
+
+            let size = try await LocalFileSystem().directorySize(of: measured)
+
+            #expect(size == 35)
+        }
+    }
+
+    @Test func sizingStopsWhenCancelled() async throws {
+        try await withScratchDirectory { directory in
+            for index in 0..<600 {
+                try Data().write(to: directory.appendingPathComponent("file-\(index)"))
+            }
+            let task = Task { try await LocalFileSystem().directorySize(of: directory) }
+            task.cancel()
+
+            await #expect(throws: CancellationError.self) { try await task.value }
+        }
+    }
+
     @Test func throwsForMissingDirectory() async {
         let missing = FileManager.default.temporaryDirectory
             .appendingPathComponent("FindyCoreTests-missing-\(UUID().uuidString)")

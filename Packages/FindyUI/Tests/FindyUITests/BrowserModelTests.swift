@@ -9,10 +9,16 @@ private struct FakeFileSystem: FileSystemProviding {
     struct Unreadable: Error {}
 
     var listings: [String: [FileItem]] = [:]
+    var sizes: [String: Int64] = [:]
 
     func contents(of directory: URL) async throws -> [FileItem] {
         guard let items = listings[directory.path] else { throw Unreadable() }
         return items
+    }
+
+    func directorySize(of directory: URL) async throws -> Int64 {
+        guard let size = sizes[directory.path] else { throw Unreadable() }
+        return size
     }
 
     func changes(in directory: URL) -> AsyncStream<Void> {
@@ -225,6 +231,56 @@ private struct FakeFileSystem: FileSystemProviding {
             try await Task.sleep(for: .milliseconds(50))
         }
         #expect(model.items.map(\.name) == ["appeared.txt"])
+    }
+
+    private func makeSizedModel(calculatesFolderSizes: Bool) -> BrowserModel {
+        let fileSystem = FakeFileSystem(
+            listings: [
+                "/fake": [
+                    FileItem(url: URL(fileURLWithPath: "/fake/Small"), isDirectory: true),
+                    FileItem(url: URL(fileURLWithPath: "/fake/Big"), isDirectory: true),
+                    FileItem(url: URL(fileURLWithPath: "/fake/Locked"), isDirectory: true),
+                    FileItem(
+                        url: URL(fileURLWithPath: "/fake/Link"), isSymbolicLink: true, linksToFolder: true),
+                ]
+            ],
+            sizes: ["/fake/Small": 10, "/fake/Big": 5_000, "/fake/Link": 99])
+        return BrowserModel(location: root, fileSystem: fileSystem, calculatesFolderSizes: calculatesFolderSizes)
+    }
+
+    @Test func computesFolderSizesInTheBackground() async {
+        let model = makeSizedModel(calculatesFolderSizes: true)
+
+        model.reload()
+        await model.loadTask?.value
+        await model.sizeTask?.value
+
+        let sizes = Dictionary(uniqueKeysWithValues: model.items.map { ($0.name, $0.size) })
+        #expect(sizes["Small"] == 10)
+        #expect(sizes["Big"] == 5_000)
+        // A folder that cannot be measured and a link keep an unknown size.
+        #expect(sizes["Locked"] == .some(nil))
+        #expect(sizes["Link"] == .some(nil))
+
+        model.sort = FileSort(key: .size, ascending: false)
+        #expect(model.items.map(\.name) == ["Big", "Small", "Link", "Locked"])
+    }
+
+    @Test func leavesFolderSizesUnknownWhenTurnedOff() async {
+        let model = makeSizedModel(calculatesFolderSizes: false)
+
+        model.reload()
+        await model.loadTask?.value
+
+        #expect(model.sizeTask == nil)
+        #expect(model.items.allSatisfy { $0.size == nil })
+
+        model.calculatesFolderSizes = true
+        await model.sizeTask?.value
+        #expect(model.items.first { $0.name == "Big" }?.size == 5_000)
+
+        model.calculatesFolderSizes = false
+        #expect(model.items.allSatisfy { $0.size == nil })
     }
 
     @Test func reportsUnreadableFolders() async {

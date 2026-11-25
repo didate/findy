@@ -12,7 +12,7 @@ public struct FileItem: Identifiable, Hashable, Sendable {
     public let linksToFolder: Bool
     public let isHidden: Bool
     /// Logical size in bytes. `nil` for directories until it is computed in the background.
-    public let size: Int64?
+    public var size: Int64?
     public let modificationDate: Date?
 
     public var id: URL { url }

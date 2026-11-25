@@ -26,6 +26,16 @@ public struct BrowserCommands: Commands {
             .keyboardShortcut(".", modifiers: [.command, .shift])
             .disabled(workspace == nil)
 
+            Toggle(
+                isOn: Binding(
+                    get: { workspace?.calculatesFolderSizes ?? false },
+                    set: { workspace?.calculatesFolderSizes = $0 }
+                )
+            ) {
+                Text("Calculate Folder Sizes", bundle: .module)
+            }
+            .disabled(workspace == nil)
+
             Button {
                 workspace?.activePane.reload()
             } label: {

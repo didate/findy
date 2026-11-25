@@ -36,6 +36,21 @@ public final class BrowserModel: Identifiable {
         items.filter { selection.contains($0.url) }
     }
 
+    /// Whether the size of each folder is computed in the background and shown in the list.
+    public var calculatesFolderSizes: Bool {
+        didSet {
+            guard calculatesFolderSizes != oldValue else { return }
+            if calculatesFolderSizes {
+                needsFullSizing = true
+                startSizing()
+            } else {
+                sizeTask?.cancel()
+                sizeTask = nil
+            }
+            rebuildItems()
+        }
+    }
+
     /// Whether the path bar is a text field right now.
     public var isEditingPath = false
 
@@ -71,15 +86,25 @@ public final class BrowserModel: Identifiable {
     /// The listing in flight. Internal so tests can await it.
     private(set) var loadTask: Task<Void, Never>?
 
+    /// Sizes computed so far, by folder path. Kept across navigation so a folder seen before shows
+    /// its last known size at once while a fresh one is computed.
+    private var folderSizes: [String: Int64] = [:]
+    /// True when every folder of the listing must be sized again, not only the unknown ones.
+    private var needsFullSizing = true
+    /// The size computation in flight. Internal so tests can await it.
+    private(set) var sizeTask: Task<Void, Never>?
+
     public init(
         location: URL = FileManager.default.homeDirectoryForCurrentUser,
         fileSystem: any FileSystemProviding = LocalFileSystem(),
+        calculatesFolderSizes: Bool = true,
         openFiles: @escaping @MainActor ([URL]) -> Void = { urls in
             for url in urls { NSWorkspace.shared.open(url) }
         }
     ) {
         self.location = location.canonicalLocation
         self.fileSystem = fileSystem
+        self.calculatesFolderSizes = calculatesFolderSizes
         self.openFiles = openFiles
     }
 
@@ -163,8 +188,14 @@ public final class BrowserModel: Identifiable {
         return true
     }
 
-    /// Lists the current location again.
+    /// Lists the current location again and computes every folder size afresh.
     public func reload() {
+        needsFullSizing = true
+        refresh()
+    }
+
+    /// Lists the current location again, keeping what is already known about it.
+    private func refresh() {
         loadTask?.cancel()
         isLoading = true
         let directory = location
@@ -183,6 +214,49 @@ public final class BrowserModel: Identifiable {
             }
             rebuildItems()
             isLoading = false
+            startSizing()
+        }
+    }
+
+    /// Computes folder sizes in the background, two folders at a time, and publishes them in batches.
+    private func startSizing() {
+        guard calculatesFolderSizes else { return }
+        // A refresh while a computation runs must not restart it: busy folders would never finish.
+        if sizeTask != nil && !needsFullSizing { return }
+        // Links are skipped: their target is not part of this folder.
+        var folders = allItems.filter { $0.isDirectory && !$0.isSymbolicLink }.map(\.url)
+        if !needsFullSizing {
+            folders.removeAll { folderSizes[$0.path] != nil }
+        }
+        needsFullSizing = false
+        sizeTask?.cancel()
+        sizeTask = nil
+        guard !folders.isEmpty else { return }
+
+        sizeTask = Task { [fileSystem] in
+            var pending = folders.makeIterator()
+            await withTaskGroup(of: (URL, Int64?).self) { group in
+                func addNext() {
+                    guard let url = pending.next() else { return }
+                    group.addTask { (url, try? await fileSystem.directorySize(of: url)) }
+                }
+                addNext()
+                addNext()
+                var lastPublished = ContinuousClock.now
+                for await (url, size) in group {
+                    if Task.isCancelled { break }
+                    if let size { folderSizes[url.path] = size }
+                    addNext()
+                    // Publishing every result would re-sort and redraw the list hundreds of times.
+                    if ContinuousClock.now - lastPublished > .milliseconds(250) {
+                        rebuildItems()
+                        lastPublished = .now
+                    }
+                }
+            }
+            guard !Task.isCancelled else { return }
+            rebuildItems()
+            sizeTask = nil
         }
     }
 
@@ -190,7 +264,7 @@ public final class BrowserModel: Identifiable {
     /// Watches the location current at the time of the call: call it again after navigating.
     public func followChanges() async {
         for await _ in fileSystem.changes(in: location) {
-            reload()
+            refresh()
         }
     }
 
@@ -202,6 +276,8 @@ public final class BrowserModel: Identifiable {
         errorMessage = nil
         filterText = ""
         selection = []
+        sizeTask?.cancel()
+        sizeTask = nil
         reload()
     }
 
@@ -210,6 +286,13 @@ public final class BrowserModel: Identifiable {
         if !filterText.isEmpty {
             // Case- and diacritic-insensitive, like Finder's search.
             visible = visible.filter { $0.name.localizedStandardContains(filterText) }
+        }
+        if calculatesFolderSizes {
+            for index in visible.indices where visible[index].isDirectory {
+                if let size = folderSizes[visible[index].url.path] {
+                    visible[index].size = size
+                }
+            }
         }
         items = sort.sorted(visible)
         if !selection.isEmpty {

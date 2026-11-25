@@ -12,14 +12,33 @@ public final class WorkspaceModel {
     /// The pane menu commands and the toolbar act on.
     public var activePane: BrowserModel { panes[activePaneIndex] }
 
+    /// Applies to every pane and is remembered across launches.
+    public var calculatesFolderSizes: Bool {
+        didSet {
+            guard calculatesFolderSizes != oldValue else { return }
+            defaults.set(calculatesFolderSizes, forKey: Self.folderSizesKey)
+            for pane in panes { pane.calculatesFolderSizes = calculatesFolderSizes }
+        }
+    }
+
+    private static let folderSizesKey = "calculatesFolderSizes"
+
     private let fileSystem: any FileSystemProviding
+    private let defaults: UserDefaults
 
     public init(
         location: URL = FileManager.default.homeDirectoryForCurrentUser,
-        fileSystem: any FileSystemProviding = LocalFileSystem()
+        fileSystem: any FileSystemProviding = LocalFileSystem(),
+        defaults: UserDefaults = .standard
     ) {
         self.fileSystem = fileSystem
-        panes = [BrowserModel(location: location, fileSystem: fileSystem)]
+        self.defaults = defaults
+        // On unless the user turned it off.
+        let calculatesFolderSizes = defaults.object(forKey: Self.folderSizesKey) as? Bool ?? true
+        self.calculatesFolderSizes = calculatesFolderSizes
+        panes = [
+            BrowserModel(location: location, fileSystem: fileSystem, calculatesFolderSizes: calculatesFolderSizes)
+        ]
     }
 
     public func activate(_ pane: BrowserModel) {

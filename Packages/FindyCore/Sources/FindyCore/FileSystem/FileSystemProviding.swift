@@ -5,6 +5,10 @@ public protocol FileSystemProviding: Sendable {
     /// Lists the direct children of `directory`, hidden files included, in no particular order.
     func contents(of directory: URL) async throws -> [FileItem]
 
+    /// Adds up the logical sizes of every file under `directory`, at any depth.
+    /// Symbolic links are not followed and cloud-only files are not downloaded.
+    func directorySize(of directory: URL) async throws -> Int64
+
     /// Yields each time the direct children of `directory` change, until the consumer stops iterating.
     func changes(in directory: URL) -> AsyncStream<Void>
 

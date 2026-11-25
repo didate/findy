@@ -26,6 +26,31 @@ public struct LocalFileSystem: FileSystemProviding {
         return urls.map(Self.makeItem)
     }
 
+    public func directorySize(of directory: URL) async throws -> Int64 {
+        let keys: Set<URLResourceKey> = [.isRegularFileKey, .fileSizeKey]
+        // Subfolders that cannot be read are skipped: a partial size beats no size.
+        guard
+            let enumerator = FileManager.default.enumerator(
+                at: directory, includingPropertiesForKeys: Array(keys), options: [],
+                errorHandler: { _, _ in true })
+        else {
+            throw CocoaError(.fileReadNoPermission, userInfo: [NSFilePathErrorKey: directory.path])
+        }
+        var total: Int64 = 0
+        var visited = 0
+        // The enumerator never descends into symbolic links, and a link is not a regular file.
+        while let url = enumerator.nextObject() as? URL {
+            visited += 1
+            if visited.isMultiple(of: 256) { try Task.checkCancellation() }
+            guard let values = try? url.resourceValues(forKeys: keys), values.isRegularFile == true else {
+                continue
+            }
+            total += Int64(values.fileSize ?? 0)
+        }
+        try Task.checkCancellation()
+        return total
+    }
+
     public func changes(in directory: URL) -> AsyncStream<Void> {
         DirectoryWatcher.changes(in: directory)
     }
