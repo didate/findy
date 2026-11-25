@@ -14,7 +14,9 @@ struct FileListView: NSViewRepresentable {
     let selection: Set<URL>
     let sort: FileSort
     let renamingURL: URL?
+    let isActive: Bool
     let onActivate: () -> Void
+    let onSwitchPane: () -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -55,6 +57,7 @@ struct FileListView: NSViewRepresentable {
         let coordinator = context.coordinator
         coordinator.parent = self
         coordinator.applyModelState()
+        coordinator.takeFocusIfActivated(isActive)
     }
 
     // MARK: Columns
@@ -107,6 +110,7 @@ struct FileListView: NSViewRepresentable {
         /// True while the coordinator pushes model state into the table, so the table's delegate
         /// callbacks are not mistaken for user actions and echoed back to the model.
         private var isApplying = false
+        private var wasActive = true
         /// The entry whose name is being edited in place, and its text field.
         private var editing: (url: URL, field: NSTextField)?
 
@@ -164,7 +168,8 @@ struct FileListView: NSViewRepresentable {
                 if locationChanged {
                     tableView.scrollRowToVisible(0)
                     // After navigating, typing must reach the list (arrows, instant filter).
-                    tableView.window?.makeFirstResponder(tableView)
+                    // Only the active pane may take the focus: the other one refreshes too.
+                    if parent.isActive { tableView.window?.makeFirstResponder(tableView) }
                 }
             } else if selectedURLs(in: tableView) != selection {
                 select(selection, in: tableView)
@@ -238,6 +243,18 @@ struct FileListView: NSViewRepresentable {
 
         func tableViewDidBecomeActive() {
             parent.onActivate()
+        }
+
+        func tableViewSwitchPane() {
+            parent.onSwitchPane()
+        }
+
+        /// When the pane becomes the active one by a command (Tab, not a click), its list takes
+        /// the keyboard focus.
+        func takeFocusIfActivated(_ isActive: Bool) {
+            defer { wasActive = isActive }
+            guard isActive, !wasActive, editing == nil, let tableView, let window = tableView.window else { return }
+            if window.firstResponder !== tableView { window.makeFirstResponder(tableView) }
         }
 
         func tableViewAppendToFilter(_ text: String) {

@@ -8,6 +8,11 @@ public struct BrowserCommands: Commands {
 
     public init() {}
 
+    private static func functionKey(_ code: Int) -> KeyEquivalent {
+        // The AppKit function key codes are valid Unicode scalars in the private use area.
+        KeyEquivalent(Character(UnicodeScalar(UInt16(code)).map(String.init) ?? " "))
+    }
+
     /// The text view the user is typing in (a rename field, the path field), if any.
     @MainActor private static var textBeingEdited: NSTextView? {
         NSApp.keyWindow?.firstResponder as? NSTextView
@@ -55,6 +60,24 @@ public struct BrowserCommands: Commands {
             }
             .keyboardShortcut(.delete, modifiers: .command)
             .disabled(workspace == nil)
+
+            Divider()
+
+            Button {
+                workspace?.copySelectionToOtherPane()
+            } label: {
+                Text("Copy to Other Pane", bundle: .module)
+            }
+            .keyboardShortcut(Self.functionKey(NSF5FunctionKey), modifiers: [])
+            .disabled(workspace?.isDualPane != true)
+
+            Button {
+                workspace?.moveSelectionToOtherPane()
+            } label: {
+                Text("Move to Other Pane", bundle: .module)
+            }
+            .keyboardShortcut(Self.functionKey(NSF6FunctionKey), modifiers: [])
+            .disabled(workspace?.isDualPane != true)
         }
 
         // Replaces the standard items, which only know about `UndoManager`. File operations are
@@ -94,6 +117,18 @@ public struct BrowserCommands: Commands {
         }
 
         CommandGroup(after: .toolbar) {
+            Button {
+                workspace?.toggleDualPane()
+            } label: {
+                if workspace?.isDualPane == true {
+                    Text("Hide Second Pane", bundle: .module)
+                } else {
+                    Text("Show Second Pane", bundle: .module)
+                }
+            }
+            .keyboardShortcut("d", modifiers: [.command, .shift])
+            .disabled(workspace == nil)
+
             Button {
                 workspace?.activePane.showsHiddenFiles.toggle()
             } label: {

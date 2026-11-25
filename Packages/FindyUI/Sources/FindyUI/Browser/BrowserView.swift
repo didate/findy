@@ -21,7 +21,14 @@ public struct BrowserView: View {
         } detail: {
             HStack(spacing: 0) {
                 ForEach(workspace.panes) { pane in
-                    PaneView(model: pane) { workspace.activate(pane) }
+                    if pane !== workspace.panes.first { Divider() }
+                    PaneView(
+                        model: pane,
+                        isActive: pane === workspace.activePane,
+                        isDualPane: workspace.isDualPane,
+                        onActivate: { workspace.activate(pane) },
+                        onSwitchPane: { workspace.switchPane() }
+                    )
                 }
             }
             .navigationTitle(workspace.activePane.title)
@@ -68,6 +75,21 @@ public struct BrowserView: View {
                 }
             }
             .disabled(!pane.canGoUp)
+        }
+
+        ToolbarItem(placement: .primaryAction) {
+            Toggle(
+                isOn: Binding(
+                    get: { workspace.isDualPane },
+                    set: { _ in workspace.toggleDualPane() }
+                )
+            ) {
+                Label {
+                    Text("Dual Pane", bundle: .module)
+                } icon: {
+                    Image(systemName: "rectangle.split.2x1")
+                }
+            }
         }
 
         ToolbarItem(placement: .primaryAction) {

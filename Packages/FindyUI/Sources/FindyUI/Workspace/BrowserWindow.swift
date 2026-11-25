@@ -17,7 +17,8 @@ public enum BrowserWindow {
     /// Opens a new browser window as a tab of the frontmost one, showing `location`.
     static func openTab(at location: URL?, with openWindow: OpenWindowAction) {
         // `keyWindow` is nil while another app is active, hence the fallback on window order.
-        tabHost = [NSApp.keyWindow].compactMap { $0 }.first(where: windows.contains)
+        tabHost =
+            [NSApp.keyWindow].compactMap { $0 }.first(where: windows.contains)
             ?? NSApp.orderedWindows.first(where: windows.contains)
         pendingLocation = location
         openWindow(id: sceneID)

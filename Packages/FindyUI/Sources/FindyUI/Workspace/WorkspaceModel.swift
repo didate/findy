@@ -27,27 +27,67 @@ public final class WorkspaceModel {
     public let history = UndoHistory()
 
     private let fileSystem: any FileSystemProviding
+    private let operations: any FileOperating
     private let defaults: UserDefaults
 
     public init(
         location: URL = FileManager.default.homeDirectoryForCurrentUser,
         fileSystem: any FileSystemProviding = LocalFileSystem(),
+        operations: any FileOperating = LocalFileOperations(),
         defaults: UserDefaults = .standard
     ) {
         self.fileSystem = fileSystem
+        self.operations = operations
         self.defaults = defaults
         // On unless the user turned it off.
         let calculatesFolderSizes = defaults.object(forKey: Self.folderSizesKey) as? Bool ?? true
         self.calculatesFolderSizes = calculatesFolderSizes
         panes = [
             BrowserModel(
-                location: location, fileSystem: fileSystem, history: history,
+                location: location, fileSystem: fileSystem, operations: operations, history: history,
                 calculatesFolderSizes: calculatesFolderSizes)
         ]
+    }
+
+    public var isDualPane: Bool { panes.count == 2 }
+
+    /// The pane facing the active one, when there are two.
+    public var otherPane: BrowserModel? {
+        isDualPane ? panes[1 - activePaneIndex] : nil
     }
 
     public func activate(_ pane: BrowserModel) {
         guard let index = panes.firstIndex(where: { $0 === pane }) else { return }
         activePaneIndex = index
+    }
+
+    /// Opens a second pane on the folder being looked at, or closes the pane that is not active.
+    public func toggleDualPane() {
+        if isDualPane {
+            panes = [activePane]
+            activePaneIndex = 0
+        } else {
+            panes.append(makePane(at: activePane.location))
+        }
+    }
+
+    /// Gives the user's attention to the other pane.
+    public func switchPane() {
+        guard isDualPane else { return }
+        activePaneIndex = 1 - activePaneIndex
+    }
+
+    public func copySelectionToOtherPane() {
+        otherPane?.transfer(activePane.selectedItems.map(\.url), move: false)
+    }
+
+    public func moveSelectionToOtherPane() {
+        otherPane?.transfer(activePane.selectedItems.map(\.url), move: true)
+    }
+
+    private func makePane(at location: URL) -> BrowserModel {
+        BrowserModel(
+            location: location, fileSystem: fileSystem, operations: operations, history: history,
+            calculatesFolderSizes: calculatesFolderSizes)
     }
 }

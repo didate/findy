@@ -4,6 +4,7 @@ import AppKit
 @MainActor
 protocol FileTableViewActions: AnyObject {
     func tableViewDidBecomeActive()
+    func tableViewSwitchPane()
     func tableViewAppendToFilter(_ text: String)
     /// Returns `false` when there was nothing to delete, so the key keeps its usual meaning.
     func tableViewDeleteFilterBackward() -> Bool
@@ -27,6 +28,7 @@ final class FileTableView: NSTableView {
         static let escape: UInt16 = 53
         static let `return`: UInt16 = 36
         static let enter: UInt16 = 76
+        static let tab: UInt16 = 48
     }
 
     // MARK: Clipboard
@@ -88,6 +90,9 @@ final class FileTableView: NSTableView {
             if actions.tableViewClearFilter() { return }
         case KeyCode.delete:
             if actions.tableViewDeleteFilterBackward() { return }
+        case KeyCode.tab:
+            actions.tableViewSwitchPane()
+            return
         case KeyCode.return, KeyCode.enter:
             actions.tableViewBeginRename()
             return

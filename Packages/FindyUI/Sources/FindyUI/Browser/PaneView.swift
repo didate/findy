@@ -4,10 +4,20 @@ import SwiftUI
 /// One pane: its path bar on top of its file list.
 struct PaneView: View {
     @Bindable var model: BrowserModel
+    let isActive: Bool
+    let isDualPane: Bool
     let onActivate: () -> Void
+    let onSwitchPane: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
+            // With two panes, a line marks the one that menus and shortcuts act on.
+            if isDualPane {
+                Rectangle()
+                    .fill(isActive ? AnyShapeStyle(.tint) : AnyShapeStyle(.clear))
+                    .frame(height: 2)
+                    .accessibilityHidden(true)
+            }
             PathBarView(model: model)
             Divider()
             content
@@ -31,39 +41,12 @@ struct PaneView: View {
         } message: {
             Text(verbatim: model.alertMessage ?? "")
         }
-        .alert(
-            Text("Some items already exist in this location.", bundle: .module),
-            isPresented: Binding(
-                get: { model.pendingTransfer != nil },
-                set: { if !$0 { model.resolveTransfer(nil) } }
-            ),
-            presenting: model.pendingTransfer
-        ) { _ in
-            Button {
-                model.resolveTransfer(.keepBoth)
-            } label: {
-                Text("Keep Both", bundle: .module)
-            }
-            .keyboardShortcut(.defaultAction)
-            Button {
-                model.resolveTransfer(.replace)
-            } label: {
-                Text("Replace", bundle: .module)
-            }
-            Button {
-                model.resolveTransfer(.skip)
-            } label: {
-                Text("Skip", bundle: .module)
-            }
-            Button(role: .cancel) {
-                model.resolveTransfer(nil)
-            } label: {
-                Text("Cancel", bundle: .module)
-            }
-        } message: { pending in
-            Text(verbatim: ListFormatter.localizedString(byJoining: Array(pending.conflictNames.prefix(8))))
+        .sheet(item: $model.pendingTransfer) { transfer in
+            ConflictSheet(transfer: transfer) { model.resolveTransfer($0) }
         }
         .task { model.reload() }
+        // A click anywhere in a pane, its path bar included, makes it the active one.
+        .simultaneousGesture(TapGesture().onEnded { onActivate() })
         // Restarted on every navigation, cancelled when the pane goes away.
         .task(id: model.location) { await model.followChanges() }
     }
@@ -87,7 +70,9 @@ struct PaneView: View {
                 selection: model.selection,
                 sort: model.sort,
                 renamingURL: model.renamingURL,
-                onActivate: onActivate
+                isActive: isActive,
+                onActivate: onActivate,
+                onSwitchPane: onSwitchPane
             )
             .overlay {
                 if model.items.isEmpty && !model.isLoading {

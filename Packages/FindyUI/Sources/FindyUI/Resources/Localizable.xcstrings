@@ -81,6 +81,16 @@
         }
       }
     },
+    "Copy to Other Pane" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier vers l’autre panneau"
+          }
+        }
+      }
+    },
     "Cut" : {
       "localizations" : {
         "fr" : {
@@ -127,6 +137,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Téléchargements"
+          }
+        }
+      }
+    },
+    "Dual Pane" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double panneau"
           }
         }
       }
@@ -211,6 +231,16 @@
         }
       }
     },
+    "Hide Second Pane" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masquer le second panneau"
+          }
+        }
+      }
+    },
     "Home" : {
       "localizations" : {
         "fr" : {
@@ -247,6 +277,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Déplacer"
+          }
+        }
+      }
+    },
+    "Move to Other Pane" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déplacer vers l’autre panneau"
           }
         }
       }
@@ -401,6 +441,16 @@
         }
       }
     },
+    "Replaced items are moved to the Trash." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les éléments remplacés sont placés dans la corbeille."
+          }
+        }
+      }
+    },
     "Show Hidden Files" : {
       "localizations" : {
         "fr" : {
@@ -417,6 +467,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher ou masquer les fichiers cachés"
+          }
+        }
+      }
+    },
+    "Show Second Pane" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher le second panneau"
           }
         }
       }
