@@ -36,7 +36,7 @@ public final class BrowserModel: Identifiable {
 
     /// Text typed in the list. Only entries whose name contains it are shown.
     public var filterText = "" {
-        didSet { if filterText != oldValue { rebuildItems() } }
+        didSet { if filterText != oldValue { applyFilter() } }
     }
 
     /// The selected entries, by location. Always a subset of `items`.
@@ -117,7 +117,11 @@ public final class BrowserModel: Identifiable {
     /// Name of the entry to start renaming once the next listing shows it.
     var renameAfterLoad: String?
     private let openFiles: @MainActor ([URL]) -> Void
+    /// The listing as the disk gave it.
     private var allItems: [FileItem] = []
+    /// The listing without what is hidden, with folder sizes, in display order. `items` is this
+    /// list narrowed by the filter, so typing a filter never sorts anything.
+    private var arranged: [FileItem] = []
     private var backStack: [URL] = [] {
         didSet { canGoBack = !backStack.isEmpty }
     }
@@ -253,16 +257,32 @@ public final class BrowserModel: Identifiable {
             do {
                 let listed = try await fileSystem.contents(of: directory)
                 guard !Task.isCancelled else { return }
+                // Sorting thousands of names takes long enough to drop frames: it runs off the
+                // main thread, on a snapshot of the settings.
+                let sort = sort
+                let showsHiddenFiles = showsHiddenFiles
+                let sizes = calculatesFolderSizes ? folderSizes : [:]
+                let sorted = await Task.detached(priority: .userInitiated) {
+                    Self.arrange(listed, showsHiddenFiles: showsHiddenFiles, sizes: sizes, sort: sort)
+                }.value
+                guard !Task.isCancelled else { return }
                 allItems = listed
                 errorMessage = nil
+                if sort == self.sort, showsHiddenFiles == self.showsHiddenFiles {
+                    arranged = sorted
+                    applyFilter()
+                } else {
+                    // The user changed a setting while the sort was running.
+                    rebuildItems()
+                }
             } catch is CancellationError {
                 return
             } catch {
                 guard !Task.isCancelled else { return }
                 allItems = []
                 errorMessage = error.localizedDescription
+                rebuildItems()
             }
-            rebuildItems()
             applyPendingSelection()
             isLoading = false
             startSizing()
@@ -349,13 +369,13 @@ public final class BrowserModel: Identifiable {
                     addNext()
                     // Publishing every result would re-sort and redraw the list hundreds of times.
                     if ContinuousClock.now - lastPublished > .milliseconds(250) {
-                        rebuildItems()
+                        publishFolderSizes()
                         lastPublished = .now
                     }
                 }
             }
             guard !Task.isCancelled else { return }
-            rebuildItems()
+            publishFolderSizes()
             sizeTask = nil
         }
     }
@@ -372,6 +392,7 @@ public final class BrowserModel: Identifiable {
         location = url
         // The previous folder's rows must not linger under the new title while the listing runs.
         allItems = []
+        arranged = []
         items = []
         errorMessage = nil
         filterText = ""
@@ -384,22 +405,54 @@ public final class BrowserModel: Identifiable {
         reload()
     }
 
-    private func rebuildItems() {
-        var visible = showsHiddenFiles ? allItems : allItems.filter { !$0.isHidden }
-        if !filterText.isEmpty {
-            // Case- and diacritic-insensitive, like Finder's search.
-            visible = visible.filter { $0.name.localizedStandardContains(filterText) }
+    /// Shows the sizes computed so far. Unless the list is sorted by size, nothing moves: the
+    /// numbers are filled in where they are.
+    private func publishFolderSizes() {
+        guard sort.key != .size else {
+            rebuildItems()
+            return
         }
-        if calculatesFolderSizes {
+        for index in arranged.indices where arranged[index].isDirectory {
+            if let size = folderSizes[arranged[index].url.path] {
+                arranged[index].size = size
+            }
+        }
+        applyFilter()
+    }
+
+    /// Recomputes the display order from the listing. Needed when the listing, the sort, the
+    /// hidden files setting or the sizes of a list sorted by size change.
+    private func rebuildItems() {
+        arranged = Self.arrange(
+            allItems, showsHiddenFiles: showsHiddenFiles, sizes: calculatesFolderSizes ? folderSizes : [:],
+            sort: sort)
+        applyFilter()
+    }
+
+    /// Narrows the arranged list to the entries matching the filter. Order is kept, so this never sorts.
+    private func applyFilter() {
+        if filterText.isEmpty {
+            items = arranged
+        } else {
+            // Case- and diacritic-insensitive, like Finder's search.
+            items = arranged.filter { $0.name.localizedStandardContains(filterText) }
+        }
+        if !selection.isEmpty {
+            selection.formIntersection(items.map(\.url))
+        }
+    }
+
+    private nonisolated static func arrange(
+        _ listing: [FileItem], showsHiddenFiles: Bool, sizes: [String: Int64], sort: FileSort
+    ) -> [FileItem] {
+        var visible = showsHiddenFiles ? listing : listing.filter { !$0.isHidden }
+        if !sizes.isEmpty {
             for index in visible.indices where visible[index].isDirectory {
-                if let size = folderSizes[visible[index].url.path] {
+                if let size = sizes[visible[index].url.path] {
                     visible[index].size = size
                 }
             }
         }
-        items = sort.sorted(visible)
-        if !selection.isEmpty {
-            selection.formIntersection(items.map(\.url))
-        }
+        return sort.sorted(visible)
     }
 }
