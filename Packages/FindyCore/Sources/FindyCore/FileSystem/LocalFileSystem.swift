@@ -26,6 +26,10 @@ public struct LocalFileSystem: FileSystemProviding {
         return urls.map(Self.makeItem)
     }
 
+    public func changes(in directory: URL) -> AsyncStream<Void> {
+        DirectoryWatcher.changes(in: directory)
+    }
+
     public func mountedVolumes() async -> [Volume] {
         let urls =
             FileManager.default.mountedVolumeURLs(

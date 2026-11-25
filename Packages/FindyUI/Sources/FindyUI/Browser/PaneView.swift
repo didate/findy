@@ -17,6 +17,8 @@ struct PaneView: View {
             }
         }
         .task { model.reload() }
+        // Restarted on every navigation, cancelled when the pane goes away.
+        .task(id: model.location) { await model.followChanges() }
     }
 
     @ViewBuilder private var content: some View {

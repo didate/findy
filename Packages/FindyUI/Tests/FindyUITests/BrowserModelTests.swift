@@ -15,6 +15,10 @@ private struct FakeFileSystem: FileSystemProviding {
         return items
     }
 
+    func changes(in directory: URL) -> AsyncStream<Void> {
+        AsyncStream { $0.finish() }
+    }
+
     func mountedVolumes() async -> [Volume] { [] }
 }
 
@@ -199,6 +203,28 @@ private struct FakeFileSystem: FileSystemProviding {
 
         #expect(model.selection == [a])
         #expect(model.selectedItems.map(\.name) == ["a.txt"])
+    }
+
+    @Test func followsChangesOnDisk() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("FindyUITests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let model = BrowserModel(location: directory)
+        model.reload()
+        await model.loadTask?.value
+        #expect(model.items.isEmpty)
+
+        let following = Task { await model.followChanges() }
+        defer { following.cancel() }
+        try await Task.sleep(for: .milliseconds(300))
+        try Data().write(to: directory.appendingPathComponent("appeared.txt"))
+
+        let deadline = ContinuousClock.now + .seconds(5)
+        while model.items.isEmpty, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        #expect(model.items.map(\.name) == ["appeared.txt"])
     }
 
     @Test func reportsUnreadableFolders() async {

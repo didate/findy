@@ -186,6 +186,14 @@ public final class BrowserModel: Identifiable {
         }
     }
 
+    /// Keeps the listing in sync with the disk for as long as the caller awaits it.
+    /// Watches the location current at the time of the call: call it again after navigating.
+    public func followChanges() async {
+        for await _ in fileSystem.changes(in: location) {
+            reload()
+        }
+    }
+
     private func show(_ url: URL) {
         location = url
         // The previous folder's rows must not linger under the new title while the listing runs.

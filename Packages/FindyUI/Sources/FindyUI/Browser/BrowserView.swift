@@ -2,10 +2,14 @@ import SwiftUI
 
 /// One browser window: sidebar on the left, panes on the right.
 public struct BrowserView: View {
-    @State private var workspace = WorkspaceModel()
+    @State private var workspace: WorkspaceModel
     @State private var sidebar = SidebarModel()
 
-    public init() {}
+    /// - Parameter location: the folder to show first; the home folder when `nil`.
+    public init(location: URL? = nil) {
+        _workspace = State(
+            initialValue: WorkspaceModel(location: location ?? FileManager.default.homeDirectoryForCurrentUser))
+    }
 
     public var body: some View {
         NavigationSplitView {
