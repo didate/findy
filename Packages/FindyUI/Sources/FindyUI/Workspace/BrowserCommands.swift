@@ -133,6 +133,17 @@ public struct BrowserCommands: Commands {
             .disabled(workspace == nil)
         }
 
+        CommandGroup(after: .pasteboard) {
+            Button {
+                workspace?.activePane.copyPath()
+            } label: {
+                Text("Copy Path", bundle: .module)
+            }
+            // Same shortcut as Finder's Copy as Pathname.
+            .keyboardShortcut("c", modifiers: [.command, .option])
+            .disabled(workspace == nil)
+        }
+
         CommandGroup(after: .toolbar) {
             Button {
                 workspace?.toggleDualPane()

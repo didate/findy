@@ -15,6 +15,13 @@ enum FilePasteboard {
         cutChangeCount = cut ? pasteboard.changeCount : nil
     }
 
+    static func write(text: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+        cutChangeCount = nil
+    }
+
     static var hasFiles: Bool {
         NSPasteboard.general.canReadObject(
             forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true])

@@ -10,6 +10,7 @@ private struct FakeFileSystem: FileSystemProviding {
 
     var listings: [String: [FileItem]] = [:]
     var sizes: [String: Int64] = [:]
+    var git: [String: GitInfo] = [:]
 
     func contents(of directory: URL) async throws -> [FileItem] {
         guard let items = listings[directory.path] else { throw Unreadable() }
@@ -28,6 +29,10 @@ private struct FakeFileSystem: FileSystemProviding {
     func mountedVolumes() async -> [Volume] { [] }
 
     func cloudLocations() async -> [Volume] { [] }
+
+    func gitInfo(for directory: URL) async -> GitInfo? { git[directory.path] }
+
+    func availableSpace(at directory: URL) async -> Int64? { 1_000 }
 
     func isBrowsableFolder(_ url: URL) async -> Bool { listings[url.path] != nil }
 }
@@ -383,5 +388,45 @@ private struct FakeFileSystem: FileSystemProviding {
         #expect(model.items.isEmpty)
         #expect(model.errorMessage != nil)
         #expect(!model.isLoading)
+    }
+
+    @Test func reportsTheGitBranchAndFreeSpaceOfTheFolderShown() async {
+        let info = GitInfo(
+            head: "main", isDetached: false, root: root, gitDirectory: root.appendingPathComponent(".git"))
+        let fileSystem = FakeFileSystem(listings: ["/fake": [], "/fake/Sub": []], git: ["/fake": info])
+        let model = BrowserModel(location: root, fileSystem: fileSystem)
+
+        model.reload()
+        await model.statusTask?.value
+        #expect(model.gitInfo == info)
+        #expect(model.availableSpace == 1_000)
+
+        // Leaving the repository drops the branch.
+        model.navigate(to: sub)
+        await model.statusTask?.value
+        #expect(model.gitInfo == nil)
+    }
+
+    @Test func addsUpTheSizeOfTheSelection() async {
+        let model = makeModel()
+        model.reload()
+        await model.loadTask?.value
+        #expect(model.selectedSize == nil)
+
+        model.selection = [URL(fileURLWithPath: "/fake/a.txt"), URL(fileURLWithPath: "/fake/b.txt")]
+
+        #expect(model.selectedSize == 11)
+    }
+
+    @Test func copiesThePathOfTheSelectionOrOfTheFolder() async {
+        let model = makeModel()
+        model.reload()
+        await model.loadTask?.value
+        #expect(model.pathsForClipboard == "/fake")
+
+        model.selection = [URL(fileURLWithPath: "/fake/b.txt"), URL(fileURLWithPath: "/fake/a.txt")]
+
+        // In the order shown, whatever the order of selection.
+        #expect(model.pathsForClipboard == "/fake/a.txt\n/fake/b.txt")
     }
 }

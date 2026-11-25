@@ -405,6 +405,7 @@ struct FileListView: NSViewRepresentable {
             addItem(
                 to: menu, String(localized: "Paste", bundle: .module), #selector(menuPaste),
                 enabled: FilePasteboard.hasFiles)
+            addItem(to: menu, String(localized: "Copy Path", bundle: .module), #selector(menuCopyPath))
             menu.addItem(.separator())
             addItem(to: menu, String(localized: "New Folder", bundle: .module), #selector(menuNewFolder))
             return menu
@@ -418,6 +419,7 @@ struct FileListView: NSViewRepresentable {
         }
 
         @objc private func menuOpen() { model.openSelection() }
+        @objc private func menuCopyPath() { model.copyPath() }
         @objc private func menuTerminal() { model.openTerminal() }
         @objc private func menuAddToSidebar() { FavoritesStore.shared.add(model.foldersForSidebar) }
         @objc private func menuRename() { model.beginRenamingSelection() }

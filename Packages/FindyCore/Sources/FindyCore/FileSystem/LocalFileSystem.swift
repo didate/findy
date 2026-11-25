@@ -77,6 +77,20 @@ public struct LocalFileSystem: FileSystemProviding {
         return (values?.isDirectory ?? false) && !(values?.isPackage ?? false)
     }
 
+    public func gitInfo(for directory: URL) async -> GitInfo? {
+        GitRepository.info(for: directory)
+    }
+
+    public func availableSpace(at directory: URL) async -> Int64? {
+        // The figure Finder shows: it counts the space the system can free on demand.
+        let values = try? directory.resourceValues(forKeys: [
+            .volumeAvailableCapacityForImportantUsageKey, .volumeAvailableCapacityKey,
+        ])
+        if let important = values?.volumeAvailableCapacityForImportantUsage, important > 0 { return important }
+        // Network and external volumes often report only the plain figure.
+        return values?.volumeAvailableCapacity.map(Int64.init)
+    }
+
     /// Cloud folders live at fixed places under the home folder: iCloud Drive in `Mobile Documents`,
     /// every File Provider service (Google Drive, OneDrive, Dropbox…) in `CloudStorage`.
     /// Only names are read here, so nothing gets downloaded.

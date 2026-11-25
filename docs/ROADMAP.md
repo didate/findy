@@ -30,6 +30,8 @@
 
 - [x] Your own favorites in the sidebar: add a folder (File > Add to Sidebar, ⌃⌘T, or drop it between two favorites), remove it, reorder by dragging
 - [x] Cloud storage folders under Locations (iCloud Drive, Google Drive and the other File Provider services)
+- [x] Status bar: number of items, selection and its size, free space, and the Git branch of the folder (followed live)
+- [x] Copy Path (⌥⌘C) for the selection or the current folder
 
 ## Next
 

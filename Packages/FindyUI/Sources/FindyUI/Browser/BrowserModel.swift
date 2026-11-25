@@ -76,6 +76,11 @@ public final class BrowserModel: Identifiable {
     /// True while an operation on files is running.
     public internal(set) var isBusy = false
 
+    /// The Git repository the folder shown belongs to, if any.
+    public private(set) var gitInfo: GitInfo?
+    /// Bytes left on the volume of the folder shown, when the volume reports it.
+    public private(set) var availableSpace: Int64?
+
     /// Whether the path bar is a text field right now.
     public var isEditingPath = false
 
@@ -135,6 +140,8 @@ public final class BrowserModel: Identifiable {
     }
     /// The listing in flight. Internal so tests can await it.
     private(set) var loadTask: Task<Void, Never>?
+    /// The read of the Git branch and of the free space in flight. Internal so tests can await it.
+    private(set) var statusTask: Task<Void, Never>?
     /// The terminal launch in flight. Internal so tests can await it.
     private(set) var terminalTask: Task<Void, Never>?
 
@@ -258,6 +265,48 @@ public final class BrowserModel: Identifiable {
         return selection.isEmpty ? [location] : folders
     }
 
+    // MARK: Status
+
+    /// The sizes of the selected entries added up. `nil` when none of them has a known size.
+    public var selectedSize: Int64? {
+        let sizes = selectedItems.compactMap(\.size)
+        return sizes.isEmpty ? nil : sizes.reduce(0, +)
+    }
+
+    /// What Copy Path puts on the clipboard: the selected entries, one per line and in the order
+    /// shown, or the folder shown when nothing is selected.
+    public var pathsForClipboard: String {
+        let selected = selectedItems.map(\.url.path)
+        return selected.isEmpty ? location.path : selected.joined(separator: "\n")
+    }
+
+    public func copyPath() {
+        FilePasteboard.write(text: pathsForClipboard)
+    }
+
+    /// Reads the Git branch and the free space again. Both are cheap, and both go stale: a copy
+    /// eats space, a checkout changes the branch.
+    func refreshStatus() {
+        statusTask?.cancel()
+        let directory = location
+        statusTask = Task { [fileSystem] in
+            let git = await fileSystem.gitInfo(for: directory)
+            let space = await fileSystem.availableSpace(at: directory)
+            guard !Task.isCancelled, location == directory else { return }
+            gitInfo = git
+            availableSpace = space
+        }
+    }
+
+    /// Follows the repository's own folder, where `HEAD` lives: a checkout made in a terminal
+    /// shows up at once. Watches the repository current at the time of the call.
+    public func followGitChanges() async {
+        guard let gitDirectory = gitInfo?.gitDirectory else { return }
+        for await _ in fileSystem.changes(in: gitDirectory) {
+            refreshStatus()
+        }
+    }
+
     // MARK: Filter
 
     public func appendToFilter(_ text: String) {
@@ -291,6 +340,7 @@ public final class BrowserModel: Identifiable {
         loadTask?.cancel()
         isLoading = true
         let directory = location
+        refreshStatus()
         loadTask = Task { [fileSystem] in
             // Settings first, so the folder appears directly in the order the user chose for it.
             await applySavedSettings(for: directory)

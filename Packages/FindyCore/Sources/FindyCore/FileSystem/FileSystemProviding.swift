@@ -20,4 +20,10 @@ public protocol FileSystemProviding: Sendable {
 
     /// Whether `url` is a folder the user can browse (a package such as an app is not).
     func isBrowsableFolder(_ url: URL) async -> Bool
+
+    /// The Git repository `directory` belongs to, if any. Read from the repository's own files.
+    func gitInfo(for directory: URL) async -> GitInfo?
+
+    /// The space left on the volume holding `directory`, in bytes, when the volume reports it.
+    func availableSpace(at directory: URL) async -> Int64?
 }
