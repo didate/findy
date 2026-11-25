@@ -79,6 +79,18 @@ public struct BrowserView: View {
         }
 
         ToolbarItem(placement: .primaryAction) {
+            Button {
+                pane.openTerminal()
+            } label: {
+                Label {
+                    Text("Open in Terminal", bundle: .module)
+                } icon: {
+                    Image(systemName: "terminal")
+                }
+            }
+        }
+
+        ToolbarItem(placement: .primaryAction) {
             Toggle(
                 isOn: Binding(
                     get: { workspace.isDualPane },

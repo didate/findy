@@ -121,6 +121,7 @@ public final class BrowserModel: Identifiable {
     /// Name of the entry to start renaming once the next listing shows it.
     var renameAfterLoad: String?
     private let openFiles: @MainActor ([URL]) -> Void
+    private let openInTerminal: @MainActor (URL) async throws -> Void
     /// The listing as the disk gave it.
     private var allItems: [FileItem] = []
     /// The listing without what is hidden, with folder sizes, in display order. `items` is this
@@ -134,6 +135,8 @@ public final class BrowserModel: Identifiable {
     }
     /// The listing in flight. Internal so tests can await it.
     private(set) var loadTask: Task<Void, Never>?
+    /// The terminal launch in flight. Internal so tests can await it.
+    private(set) var terminalTask: Task<Void, Never>?
 
     /// Sizes computed so far, by folder path. Kept across navigation so a folder seen before shows
     /// its last known size at once while a fresh one is computed.
@@ -153,7 +156,8 @@ public final class BrowserModel: Identifiable {
         calculatesFolderSizes: Bool = true,
         openFiles: @escaping @MainActor ([URL]) -> Void = { urls in
             for url in urls { NSWorkspace.shared.open(url) }
-        }
+        },
+        openInTerminal: @escaping @MainActor (URL) async throws -> Void = { try await TerminalLauncher.open($0) }
     ) {
         self.location = location.canonicalLocation
         self.fileSystem = fileSystem
@@ -163,6 +167,7 @@ public final class BrowserModel: Identifiable {
         self.iconProvider = iconProvider
         self.calculatesFolderSizes = calculatesFolderSizes
         self.openFiles = openFiles
+        self.openInTerminal = openInTerminal
     }
 
     // MARK: Navigation
@@ -220,6 +225,30 @@ public final class BrowserModel: Identifiable {
         } else {
             let files = selected.filter { !$0.isFolder }.map(\.url)
             if !files.isEmpty { openFiles(files) }
+        }
+    }
+
+    // MARK: Terminal
+
+    /// The folder a terminal would open in: the selected folder when exactly one entry is selected
+    /// and it is a folder, the folder shown otherwise.
+    public var terminalFolder: URL {
+        let selected = selectedItems
+        if selected.count == 1, let only = selected.first, only.isFolder {
+            return only.url
+        }
+        return location
+    }
+
+    /// Opens a terminal window in `terminalFolder`.
+    public func openTerminal() {
+        let folder = terminalFolder
+        terminalTask = Task {
+            do {
+                try await openInTerminal(folder)
+            } catch {
+                report(error)
+            }
         }
     }
 

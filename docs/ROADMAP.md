@@ -20,6 +20,7 @@
 - [x] App icon
 - [x] Drag and drop in the list, between panes and with other apps
 - [x] Real icons (apps, custom folders, previews of images and documents), loaded in the background
+- [x] Open in Terminal (⌥⌘T), with the terminal app chosen in Settings
 - [x] Progress of a copy or a move, with a Stop button that works in the middle of a file
 
 ## Before releasing v0.1

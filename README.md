@@ -16,6 +16,7 @@ A free, open-source, native file manager for macOS. It runs alongside Finder and
 - Nothing is overwritten silently: Keep Both, Replace or Skip
 - A copy shows its progress and can be stopped at any point, leaving nothing half-written
 - Undo and redo for every file operation
+- Open in Terminal (⌥⌘T) on the current or the selected folder, in the terminal app of your choice
 - The list follows changes on disk
 - English and French
 

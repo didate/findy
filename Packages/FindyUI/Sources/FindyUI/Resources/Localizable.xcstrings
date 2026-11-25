@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ is not installed on this Mac." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ n’est pas installé sur ce Mac."
+          }
+        }
+      }
+    },
     "%@ of %@" : {
       "localizations" : {
         "fr" : {
@@ -391,6 +401,16 @@
         }
       }
     },
+    "Open in Terminal" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir dans le terminal"
+          }
+        }
+      }
+    },
     "Open Selection" : {
       "localizations" : {
         "fr" : {
@@ -551,6 +571,16 @@
         }
       }
     },
+    "Terminal app:" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Application de terminal :"
+          }
+        }
+      }
+    },
     "The operation couldn’t be completed." : {
       "localizations" : {
         "fr" : {
@@ -587,6 +617,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "dossier sans titre"
+          }
+        }
+      }
+    },
+    "Used by Open in Terminal." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisée par « Ouvrir dans le terminal »."
           }
         }
       }

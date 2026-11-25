@@ -10,6 +10,10 @@ struct FindyApp: App {
         }
         .defaultSize(width: 980, height: 620)
         .commands { BrowserCommands() }
+
+        Settings {
+            SettingsView()
+        }
     }
 
     /// A folder given on the command line (`open -a Findy --args /some/folder`), if any.

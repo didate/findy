@@ -324,6 +324,52 @@ private struct FakeFileSystem: FileSystemProviding {
         #expect(model.sort == FileSort(key: .size))
     }
 
+    @Test func opensTheTerminalInTheSelectedFolderOrTheOneShown() async {
+        var opened: [URL] = []
+        let fileSystem = FakeFileSystem(listings: [
+            "/fake": [
+                FileItem(url: sub, isDirectory: true),
+                FileItem(url: URL(fileURLWithPath: "/fake/a.txt")),
+                FileItem(url: URL(fileURLWithPath: "/fake/Other"), isDirectory: true),
+            ]
+        ])
+        let model = BrowserModel(
+            location: root, fileSystem: fileSystem, openFiles: { _ in }, openInTerminal: { opened.append($0) })
+        model.reload()
+        await model.loadTask?.value
+
+        // Nothing selected: the folder shown.
+        model.openTerminal()
+        await model.terminalTask?.value
+        // One folder selected: that folder.
+        model.selection = [sub]
+        model.openTerminal()
+        await model.terminalTask?.value
+        // A file, or several entries: the folder shown again.
+        model.selection = [URL(fileURLWithPath: "/fake/a.txt")]
+        #expect(model.terminalFolder == root)
+        model.selection = [sub, URL(fileURLWithPath: "/fake/Other")]
+        #expect(model.terminalFolder == root)
+
+        #expect(opened == [root, sub])
+        #expect(model.alertMessage == nil)
+    }
+
+    @Test func tellsTheUserWhenTheTerminalCannotBeOpened() async {
+        struct NoTerminal: LocalizedError {
+            var errorDescription: String? { "No terminal here." }
+        }
+        let fileSystem = FakeFileSystem(listings: ["/fake": []])
+        let model = BrowserModel(
+            location: root, fileSystem: fileSystem, openFiles: { _ in },
+            openInTerminal: { _ in throw NoTerminal() })
+
+        model.openTerminal()
+        await model.terminalTask?.value
+
+        #expect(model.alertMessage == "No terminal here.")
+    }
+
     @Test func reportsUnreadableFolders() async {
         let model = makeModel()
 

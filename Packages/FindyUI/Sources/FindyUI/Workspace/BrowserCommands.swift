@@ -47,6 +47,14 @@ public struct BrowserCommands: Commands {
             .disabled(workspace == nil)
 
             Button {
+                workspace?.activePane.openTerminal()
+            } label: {
+                Text("Open in Terminal", bundle: .module)
+            }
+            .keyboardShortcut("t", modifiers: [.command, .option])
+            .disabled(workspace == nil)
+
+            Button {
                 workspace?.activePane.beginRenamingSelection()
             } label: {
                 Text("Rename", bundle: .module)

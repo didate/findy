@@ -83,6 +83,7 @@ findy/
 │       │   ├── Operations/  # Étapes annulables, historique d'annulation, presse-papiers
 │       │   ├── Sidebar/
 │       │   ├── PathBar/
+│       │   ├── Terminal/    # Ouvrir dans le terminal, fenêtre Réglages
 │       │   ├── Workspace/   # Fenêtre : panneaux, onglets, commandes de menu
 │       │   └── Resources/   # Localizable.xcstrings
 │       └── Tests/
