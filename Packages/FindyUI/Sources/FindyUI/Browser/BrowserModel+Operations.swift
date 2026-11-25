@@ -3,7 +3,7 @@ import Foundation
 
 /// The actions of a pane that change the disk. Each one is undoable and reports its failures.
 extension BrowserModel {
-    private var actions: FileActions { FileActions(operations: operations) }
+    var actions: FileActions { FileActions(operations: operations) }
 
     /// Creates a folder here, selects it and starts renaming it, as Finder does.
     public func newFolder() {
@@ -69,7 +69,7 @@ extension BrowserModel {
         }
     }
 
-    private func start(_ work: @escaping @MainActor () async -> Void) {
+    func start(_ work: @escaping @MainActor () async -> Void) {
         operationTask = Task {
             isBusy = true
             await work()
@@ -79,7 +79,7 @@ extension BrowserModel {
 
     /// Shows the result at once instead of waiting for the file system to report the change.
     /// `urls` are entries of this folder to select once listed.
-    private func finish(selecting urls: [URL] = []) {
+    func finish(selecting urls: [URL] = []) {
         if !urls.isEmpty { selectAfterLoad = Set(urls.map(\.lastPathComponent)) }
         refresh()
     }

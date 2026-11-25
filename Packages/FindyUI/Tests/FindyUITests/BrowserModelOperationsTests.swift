@@ -137,6 +137,165 @@ import Testing
         }
     }
 
+    // MARK: Copy and move
+
+    /// Creates `Source/` with two files and an empty `Destination/`, and shows `Destination`.
+    private func withTransferSetup(
+        _ body: (BrowserModel, _ source: URL, _ destination: URL) async throws -> Void
+    ) async throws {
+        try await withModel { model, directory in
+            let source = directory.appendingPathComponent("Source", isDirectory: true)
+            let destination = directory.appendingPathComponent("Destination", isDirectory: true)
+            try fileManager.createDirectory(at: source, withIntermediateDirectories: false)
+            try fileManager.createDirectory(at: destination, withIntermediateDirectories: false)
+            try Data("one".utf8).write(to: source.appendingPathComponent("one.txt"))
+            try Data("two".utf8).write(to: source.appendingPathComponent("two.txt"))
+            model.navigate(to: destination)
+            await model.loadTask?.value
+            try await body(model, source, destination)
+        }
+    }
+
+    @Test func copiesFilesHereAndSelectsThem() async throws {
+        try await withTransferSetup { model, source, destination in
+            model.transfer([source.appendingPathComponent("one.txt")], move: false)
+            await settle(model)
+
+            #expect(names(in: destination) == ["one.txt"])
+            #expect(names(in: source) == ["one.txt", "two.txt"])
+            #expect(model.selectedItems.map(\.name) == ["one.txt"])
+            #expect(model.pendingTransfer == nil)
+
+            // Undo sends the copy to the Trash; the original is untouched.
+            model.undo()
+            await settle(model)
+            #expect(names(in: destination).isEmpty)
+            #expect(names(in: source) == ["one.txt", "two.txt"])
+        }
+    }
+
+    @Test func movesFilesHereAndBackOnUndo() async throws {
+        try await withTransferSetup { model, source, destination in
+            let urls = ["one.txt", "two.txt"].map { source.appendingPathComponent($0) }
+
+            model.transfer(urls, move: true)
+            await settle(model)
+            #expect(names(in: destination) == ["one.txt", "two.txt"])
+            #expect(names(in: source).isEmpty)
+
+            model.undo()
+            await settle(model)
+            #expect(names(in: destination).isEmpty)
+            #expect(names(in: source) == ["one.txt", "two.txt"])
+
+            model.redo()
+            await settle(model)
+            #expect(names(in: destination) == ["one.txt", "two.txt"])
+        }
+    }
+
+    @Test func aNameConflictWaitsForTheUser() async throws {
+        try await withTransferSetup { model, source, destination in
+            try Data("existing".utf8).write(to: destination.appendingPathComponent("one.txt"))
+            let urls = ["one.txt", "two.txt"].map { source.appendingPathComponent($0) }
+
+            model.transfer(urls, move: false)
+            await settle(model)
+
+            // Nothing was copied yet, not even the file without a conflict.
+            #expect(model.pendingTransfer?.conflictNames == ["one.txt"])
+            #expect(names(in: destination) == ["one.txt"])
+            #expect(content(of: destination.appendingPathComponent("one.txt")) == "existing")
+
+            model.resolveTransfer(nil)
+            await settle(model)
+            #expect(model.pendingTransfer == nil)
+            #expect(names(in: destination) == ["one.txt"])
+        }
+    }
+
+    @Test func keepBothBringsTheConflictInUnderAFreeName() async throws {
+        try await withTransferSetup { model, source, destination in
+            try Data("existing".utf8).write(to: destination.appendingPathComponent("one.txt"))
+            model.transfer([source.appendingPathComponent("one.txt")], move: false)
+            await settle(model)
+
+            model.resolveTransfer(.keepBoth)
+            await settle(model)
+
+            #expect(names(in: destination) == ["one 2.txt", "one.txt"])
+            #expect(content(of: destination.appendingPathComponent("one.txt")) == "existing")
+            #expect(content(of: destination.appendingPathComponent("one 2.txt")) == "one")
+        }
+    }
+
+    @Test func skipLeavesTheConflictAndBringsTheRest() async throws {
+        try await withTransferSetup { model, source, destination in
+            try Data("existing".utf8).write(to: destination.appendingPathComponent("one.txt"))
+            let urls = ["one.txt", "two.txt"].map { source.appendingPathComponent($0) }
+            model.transfer(urls, move: true)
+            await settle(model)
+
+            model.resolveTransfer(.skip)
+            await settle(model)
+
+            #expect(names(in: destination) == ["one.txt", "two.txt"])
+            #expect(content(of: destination.appendingPathComponent("one.txt")) == "existing")
+            #expect(names(in: source) == ["one.txt"])
+        }
+    }
+
+    @Test func replaceIsUndoneByBringingTheOldFileBack() async throws {
+        try await withTransferSetup { model, source, destination in
+            try Data("existing".utf8).write(to: destination.appendingPathComponent("one.txt"))
+            model.transfer([source.appendingPathComponent("one.txt")], move: false)
+            await settle(model)
+
+            model.resolveTransfer(.replace)
+            await settle(model)
+            #expect(names(in: destination) == ["one.txt"])
+            #expect(content(of: destination.appendingPathComponent("one.txt")) == "one")
+
+            // Undo, which also empties what the test put in the user's Trash.
+            model.undo()
+            await settle(model)
+            #expect(names(in: destination) == ["one.txt"])
+            #expect(content(of: destination.appendingPathComponent("one.txt")) == "existing")
+            #expect(model.alertMessage == nil)
+        }
+    }
+
+    @Test func copyingAFileWhereItAlreadyIsDuplicatesIt() async throws {
+        try await withTransferSetup { model, source, destination in
+            model.navigate(to: source)
+            await model.loadTask?.value
+
+            model.transfer([source.appendingPathComponent("one.txt")], move: false)
+            await settle(model)
+
+            #expect(names(in: source) == ["one 2.txt", "one.txt", "two.txt"])
+            #expect(model.pendingTransfer == nil)
+
+            // Moving it where it already is does nothing at all.
+            model.transfer([source.appendingPathComponent("two.txt")], move: true)
+            await settle(model)
+            #expect(names(in: source) == ["one 2.txt", "one.txt", "two.txt"])
+        }
+    }
+
+    @Test func aFolderCannotBeCopiedIntoItself() async throws {
+        try await withTransferSetup { model, source, destination in
+            model.navigate(to: source)
+            await model.loadTask?.value
+
+            model.transfer([source], move: false)
+            await settle(model)
+
+            #expect(names(in: source) == ["one.txt", "two.txt"])
+            #expect(model.alertMessage?.contains("Source") == true)
+        }
+    }
+
     @Test func renamingNeedsExactlyOneSelectedEntry() async throws {
         try await withModel { model, directory in
             try Data().write(to: directory.appendingPathComponent("a.txt"))

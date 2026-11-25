@@ -31,6 +31,38 @@ struct PaneView: View {
         } message: {
             Text(verbatim: model.alertMessage ?? "")
         }
+        .alert(
+            Text("Some items already exist in this location.", bundle: .module),
+            isPresented: Binding(
+                get: { model.pendingTransfer != nil },
+                set: { if !$0 { model.resolveTransfer(nil) } }
+            ),
+            presenting: model.pendingTransfer
+        ) { _ in
+            Button {
+                model.resolveTransfer(.keepBoth)
+            } label: {
+                Text("Keep Both", bundle: .module)
+            }
+            .keyboardShortcut(.defaultAction)
+            Button {
+                model.resolveTransfer(.replace)
+            } label: {
+                Text("Replace", bundle: .module)
+            }
+            Button {
+                model.resolveTransfer(.skip)
+            } label: {
+                Text("Skip", bundle: .module)
+            }
+            Button(role: .cancel) {
+                model.resolveTransfer(nil)
+            } label: {
+                Text("Cancel", bundle: .module)
+            }
+        } message: { pending in
+            Text(verbatim: ListFormatter.localizedString(byJoining: Array(pending.conflictNames.prefix(8))))
+        }
         .task { model.reload() }
         // Restarted on every navigation, cancelled when the pane goes away.
         .task(id: model.location) { await model.followChanges() }

@@ -50,6 +50,11 @@ struct PathBarView: View {
                 crumbRow(Array(model.crumbs.suffix(1)), truncated: true)
             }
             Spacer(minLength: 0)
+            if model.isBusy {
+                ProgressView()
+                    .controlSize(.small)
+                    .accessibilityLabel(Text("Working…", bundle: .module))
+            }
         }
         .frame(maxHeight: .infinity)
         .contentShape(Rectangle())

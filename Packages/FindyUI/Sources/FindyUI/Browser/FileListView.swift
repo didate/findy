@@ -256,6 +256,21 @@ struct FileListView: NSViewRepresentable {
             model.beginRenamingSelection()
         }
 
+        var tableViewCanCopy: Bool { !model.selection.isEmpty }
+        var tableViewCanPaste: Bool { FilePasteboard.hasFiles }
+
+        func tableViewCopy() {
+            model.copySelection()
+        }
+
+        func tableViewCut() {
+            model.cutSelection()
+        }
+
+        func tableViewPaste() {
+            model.paste()
+        }
+
         // MARK: Context menu
 
         func tableViewContextMenu() -> NSMenu? {
@@ -269,6 +284,12 @@ struct FileListView: NSViewRepresentable {
             addItem(
                 to: menu, String(localized: "Move to Trash", bundle: .module), #selector(menuTrash),
                 enabled: count > 0)
+            menu.addItem(.separator())
+            addItem(to: menu, String(localized: "Cut", bundle: .module), #selector(menuCut), enabled: count > 0)
+            addItem(to: menu, String(localized: "Copy", bundle: .module), #selector(menuCopy), enabled: count > 0)
+            addItem(
+                to: menu, String(localized: "Paste", bundle: .module), #selector(menuPaste),
+                enabled: FilePasteboard.hasFiles)
             menu.addItem(.separator())
             addItem(to: menu, String(localized: "New Folder", bundle: .module), #selector(menuNewFolder))
             return menu
@@ -285,6 +306,9 @@ struct FileListView: NSViewRepresentable {
         @objc private func menuRename() { model.beginRenamingSelection() }
         @objc private func menuTrash() { model.trashSelection() }
         @objc private func menuNewFolder() { model.newFolder() }
+        @objc private func menuCut() { model.cutSelection() }
+        @objc private func menuCopy() { model.copySelection() }
+        @objc private func menuPaste() { model.paste() }
 
         // MARK: Renaming in place
 
@@ -310,7 +334,8 @@ struct FileListView: NSViewRepresentable {
             // Select the name without its extension, so typing replaces only the name.
             let name = items[row].name as NSString
             let stemLength = items[row].isDirectory ? name.length : (name.deletingPathExtension as NSString).length
-            field.currentEditor()?.selectedRange = NSRange(location: 0, length: stemLength > 0 ? stemLength : name.length)
+            let length = stemLength > 0 ? stemLength : name.length
+            field.currentEditor()?.selectedRange = NSRange(location: 0, length: length)
         }
 
         /// Puts the field back to a plain label and gives the list the focus and its latest state.

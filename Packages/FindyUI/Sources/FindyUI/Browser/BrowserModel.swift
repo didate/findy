@@ -54,6 +54,9 @@ public final class BrowserModel: Identifiable {
     /// The entry being renamed in the list, if any.
     public var renamingURL: URL?
 
+    /// A copy or move waiting for the user to settle name conflicts.
+    public var pendingTransfer: PendingTransfer?
+
     /// A failure to tell the user about. Cleared when they dismiss it.
     public var alertMessage: String?
 

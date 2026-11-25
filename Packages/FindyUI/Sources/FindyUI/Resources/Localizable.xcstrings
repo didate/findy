@@ -41,6 +41,16 @@
         }
       }
     },
+    "Cancel" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler"
+          }
+        }
+      }
+    },
     "Can’t Open This Folder" : {
       "localizations" : {
         "fr" : {
@@ -67,6 +77,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Copier"
+          }
+        }
+      }
+    },
+    "Cut" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couper"
           }
         }
       }
@@ -201,6 +221,16 @@
         }
       }
     },
+    "Keep Both" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Garder les deux"
+          }
+        }
+      }
+    },
     "Locations" : {
       "localizations" : {
         "fr" : {
@@ -291,6 +321,16 @@
         }
       }
     },
+    "Paste" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coller"
+          }
+        }
+      }
+    },
     "Path" : {
       "localizations" : {
         "fr" : {
@@ -341,6 +381,16 @@
         }
       }
     },
+    "Replace" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remplacer"
+          }
+        }
+      }
+    },
     "Show Hidden Files" : {
       "localizations" : {
         "fr" : {
@@ -367,6 +417,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Taille"
+          }
+        }
+      }
+    },
+    "Skip" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignorer"
+          }
+        }
+      }
+    },
+    "Some items already exist in this location." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certains éléments existent déjà à cet emplacement."
           }
         }
       }
@@ -407,6 +477,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "dossier sans titre"
+          }
+        }
+      }
+    },
+    "Working…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opération en cours…"
           }
         }
       }

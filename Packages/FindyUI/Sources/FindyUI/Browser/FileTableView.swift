@@ -11,6 +11,11 @@ protocol FileTableViewActions: AnyObject {
     func tableViewClearFilter() -> Bool
     func tableViewBeginRename()
     func tableViewContextMenu() -> NSMenu?
+    var tableViewCanCopy: Bool { get }
+    var tableViewCanPaste: Bool { get }
+    func tableViewCopy()
+    func tableViewCut()
+    func tableViewPaste()
 }
 
 /// `NSTableView` that turns plain typing into an instant filter.
@@ -22,6 +27,34 @@ final class FileTableView: NSTableView {
         static let escape: UInt16 = 53
         static let `return`: UInt16 = 36
         static let enter: UInt16 = 76
+    }
+
+    // MARK: Clipboard
+
+    // The Edit menu sends these down the responder chain. A text field being edited comes first
+    // in the chain, so its own Cut, Copy and Paste keep working on text.
+
+    @objc func copy(_ sender: Any?) {
+        actions?.tableViewCopy()
+    }
+
+    @objc func cut(_ sender: Any?) {
+        actions?.tableViewCut()
+    }
+
+    @objc func paste(_ sender: Any?) {
+        actions?.tableViewPaste()
+    }
+
+    override func validateUserInterfaceItem(_ item: any NSValidatedUserInterfaceItem) -> Bool {
+        switch item.action {
+        case #selector(copy(_:)), #selector(cut(_:)):
+            actions?.tableViewCanCopy ?? false
+        case #selector(paste(_:)):
+            actions?.tableViewCanPaste ?? false
+        default:
+            super.validateUserInterfaceItem(item)
+        }
     }
 
     // MARK: Context menu
