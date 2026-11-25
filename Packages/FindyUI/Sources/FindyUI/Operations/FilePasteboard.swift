@@ -13,6 +13,16 @@ enum FilePasteboard {
         pasteboard.clearContents()
         pasteboard.writeObjects(urls.map { $0 as NSURL })
         cutChangeCount = cut ? pasteboard.changeCount : nil
+        if cut {
+            CutFiles.shared.set(urls, changeCount: pasteboard.changeCount)
+        } else {
+            CutFiles.shared.clear()
+        }
+    }
+
+    /// The files a paste would move, for the lists to dim.
+    static var cutFiles: Set<URL> {
+        CutFiles.shared.current(clipboardChangeCount: NSPasteboard.general.changeCount)
     }
 
     static func write(text: String) {
@@ -20,6 +30,7 @@ enum FilePasteboard {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         cutChangeCount = nil
+        CutFiles.shared.clear()
     }
 
     static var hasFiles: Bool {
@@ -38,6 +49,7 @@ enum FilePasteboard {
     /// Cut files can be pasted once: after the move they are no longer where the clipboard says.
     static func didPasteCut() {
         cutChangeCount = nil
+        CutFiles.shared.clear()
         NSPasteboard.general.clearContents()
     }
 }

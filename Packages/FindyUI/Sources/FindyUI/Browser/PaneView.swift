@@ -79,6 +79,7 @@ struct PaneView: View {
                 sort: model.sort,
                 renamingURL: model.renamingURL,
                 gitChanges: model.gitChanges,
+                cutFiles: FilePasteboard.cutFiles,
                 isActive: isActive,
                 onActivate: onActivate,
                 onSwitchPane: onSwitchPane

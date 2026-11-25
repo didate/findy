@@ -39,13 +39,13 @@
 - [x] New File (⌥⌘N): an empty file, named on the spot
 - [x] Git states follow the whole working tree, not only the folder shown
 - [x] View > Folders First, remembered per folder
+- [x] Cut files are dimmed until they are pasted
 
 ## Next
 
 - [ ] Drop on tabs
 - [ ] Keep the main thread free when the user re-sorts a very large folder (76 ms for 10,000 files today)
 - [ ] Use the current settings as the default for folders never customized
-- [ ] Dim the files that were cut
 - [ ] Sign with a Developer ID and notarize (needs an Apple Developer account)
 - [ ] Review the French strings on a French system
 
