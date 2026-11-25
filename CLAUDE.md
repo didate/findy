@@ -68,23 +68,26 @@ Trois modules, avec des dépendances dans un seul sens : `App → FindyUI → Fi
 ```
 findy/
 ├── project.yml              # XcodeGen
-├── App/                     # Point d'entrée, fenêtres, menus, commandes
+├── App/                     # Point d'entrée, Info.plist, Assets.xcassets (icône)
 ├── Packages/
 │   ├── FindyCore/           # Logique, sans aucune interface
 │   │   ├── Sources/FindyCore/
 │   │   │   ├── FileSystem/  # Listage, attributs, tailles, FSEvents
-│   │   │   ├── Operations/  # Copie, déplacement, corbeille, undo
-│   │   │   ├── Model/       # FileItem, Location, SortOrder…
+│   │   │   ├── Operations/  # Copie, déplacement, corbeille, renommage (une opération par élément)
+│   │   │   ├── Model/       # FileItem, FileSort, Volume…
 │   │   │   └── Store/       # Préférences par dossier (GRDB)
 │   │   └── Tests/
 │   └── FindyUI/             # Vues SwiftUI et contrôleurs AppKit
 │       ├── Sources/FindyUI/
-│       │   ├── Browser/     # Panneau, liste (NSTableView), filtre
+│       │   ├── Browser/     # Panneau, liste (NSTableView), filtre, modèle d'un panneau
+│       │   ├── Operations/  # Étapes annulables, historique d'annulation, presse-papiers
 │       │   ├── Sidebar/
 │       │   ├── PathBar/
-│       │   └── Tabs/
+│       │   ├── Workspace/   # Fenêtre : panneaux, onglets, commandes de menu
+│       │   └── Resources/   # Localizable.xcstrings
 │       └── Tests/
-└── docs/                    # ROADMAP.md, décisions d'architecture
+├── scripts/                 # make-icon.swift : régénère l'icône
+└── docs/                    # ROADMAP.md, decisions/
 ```
 
 **Règles** :
@@ -151,7 +154,10 @@ xcodebuild -scheme Findy -configuration Debug build # compiler l'app
 swift test --package-path Packages/FindyCore        # tests du cœur
 swift test --package-path Packages/FindyUI          # tests des modèles de vue
 xcrun swift-format lint --recursive App Packages    # vérifier le style
+swift scripts/make-icon.swift App/Assets.xcassets/AppIcon.appiconset  # régénérer l'icône
 ```
+
+`swift test` télécharge GRDB au premier lancement. Pour essayer l'app sur un dossier précis : `open Findy.app --args /chemin/du/dossier`.
 
 ## 10. Git
 

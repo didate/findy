@@ -2,21 +2,34 @@
 
 ## v0.1 (MVP)
 
-- [x] Project skeleton: window, sidebar, file list of a real folder
+- [x] Window with sidebar (favorites, volumes) and a fast file list
 - [x] Back, forward and enclosing-folder navigation
+- [x] Clickable and editable path bar (⌘L)
+- [x] Tabs (⌘T)
 - [x] Sort by column, folders first
 - [x] Show or hide hidden files
-- [ ] Clickable and editable path bar (⌘L)
-- [ ] Tabs
-- [ ] Folder sizes computed in the background
-- [ ] Per-folder settings (view, sort, hidden files) stored in Findy's own database
-- [ ] Instant filter: type to filter the current folder
-- [ ] Cut, copy, paste (⌘X, ⌘C, ⌘V)
-- [ ] Move to Trash, rename, new folder
-- [ ] Undo
-- [ ] Dual pane (⌘⇧D)
-- [ ] Live updates with FSEvents
-- [ ] Navigate into symbolic links that point to folders
+- [x] Folder sizes computed in the background
+- [x] Per-folder settings (sort, hidden files) stored in Findy's own database
+- [x] Instant filter: type to filter the current folder
+- [x] New folder, rename, move to Trash
+- [x] Cut, copy, paste (⌘X, ⌘C, ⌘V) with conflict handling
+- [x] Undo and redo of every file operation
+- [x] Dual pane (⇧⌘D), copy and move to the other pane (F5, F6)
+- [x] Live updates with FSEvents
+- [x] Symbolic links to folders open like folders
+- [x] App icon
+
+## Before releasing v0.1
+
+- [ ] Drag and drop, inside Findy and with other apps
+- [ ] Cancel a copy or a move while it runs, with progress
+- [ ] File icons of the files themselves (app icons, thumbnails), loaded off the main thread
+- [ ] Keep the main thread free when the user re-sorts a very large folder (76 ms for 10,000 files today)
+- [ ] An option to choose whether folders come first
+- [ ] Use the current settings as the default for folders never customized
+- [ ] Dim the files that were cut
+- [ ] Notarized DMG and Homebrew cask
+- [ ] Review the French strings on a French system
 
 ## Later
 

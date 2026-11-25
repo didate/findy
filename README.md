@@ -2,7 +2,20 @@
 
 A free, open-source, native file manager for macOS. It runs alongside Finder and focuses on speed and reliability.
 
-> Early development. Findy can browse folders today; file operations are not implemented yet.
+> Early development (v0.1 in progress). The features below work; drag and drop is not there yet.
+
+## Features
+
+- Sidebar, tabs (⌘T) and an optional second pane (⇧⌘D)
+- Path bar you can click or type in (⌘L)
+- Type in the list to filter the current folder instantly
+- Folder sizes, computed in the background
+- Sort order and hidden files remembered per folder, without `.DS_Store` files
+- Cut, copy, paste, rename, new folder, move to Trash
+- Nothing is overwritten silently: Keep Both, Replace or Skip
+- Undo and redo for every file operation
+- The list follows changes on disk
+- English and French
 
 ## Goals
 
@@ -31,9 +44,11 @@ swift test --package-path Packages/FindyUI
 
 ## Layout
 
-- `App/`: app entry point.
+- `App/`: app entry point and assets.
 - `Packages/FindyCore/`: file system logic, no UI.
 - `Packages/FindyUI/`: SwiftUI views and AppKit controllers.
+- `docs/`: roadmap and architecture decisions.
+- `scripts/make-icon.swift`: regenerates the app icon.
 
 ## License
 
