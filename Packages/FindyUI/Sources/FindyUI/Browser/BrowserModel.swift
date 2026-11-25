@@ -34,6 +34,16 @@ public final class BrowserModel: Identifiable {
         }
     }
 
+    /// Whether the list is split in sections by modification date. Remembered per folder when
+    /// the pane has a settings store.
+    public var groupsByDate = false {
+        didSet {
+            guard groupsByDate != oldValue else { return }
+            rebuildItems()
+            saveSettings()
+        }
+    }
+
     /// Text typed in the list. Only entries whose name contains it are shown.
     public var filterText = "" {
         didSet { if filterText != oldValue { applyFilter() } }
@@ -295,6 +305,13 @@ public final class BrowserModel: Identifiable {
         }
     }
 
+    // MARK: Groups
+
+    /// The section `item` is listed under when the list is grouped by date.
+    public func dateGroup(of item: FileItem) -> DateGroup {
+        DateGroup(for: item.modificationDate, now: Date())
+    }
+
     // MARK: Status
 
     /// The sizes of the selected entries added up. `nil` when none of them has a known size.
@@ -399,9 +416,12 @@ public final class BrowserModel: Identifiable {
                 // main thread, on a snapshot of the settings.
                 let sort = sort
                 let showsHiddenFiles = showsHiddenFiles
+                let groupsByDate = groupsByDate
                 let sizes = calculatesFolderSizes ? folderSizes : [:]
                 let sorted = await Task.detached(priority: .userInitiated) {
-                    Self.arrange(listed, showsHiddenFiles: showsHiddenFiles, sizes: sizes, sort: sort)
+                    Self.arrange(
+                        listed, showsHiddenFiles: showsHiddenFiles, sizes: sizes, sort: sort,
+                        groupsByDate: groupsByDate)
                 }.value
                 guard !Task.isCancelled else { return }
                 // A re-sort of the previous listing still running must not land over this one.
@@ -409,7 +429,7 @@ public final class BrowserModel: Identifiable {
                 arrangeTask = nil
                 allItems = listed
                 errorMessage = nil
-                if sort == self.sort, showsHiddenFiles == self.showsHiddenFiles {
+                if sort == self.sort, showsHiddenFiles == self.showsHiddenFiles, groupsByDate == self.groupsByDate {
                     arranged = sorted
                     applyFilter()
                 } else {
@@ -445,6 +465,7 @@ public final class BrowserModel: Identifiable {
         isApplyingSettings = true
         sort = settings.sort
         showsHiddenFiles = settings.showsHiddenFiles
+        groupsByDate = settings.groupsByDate
         isApplyingSettings = false
         settingsLocation = directory
     }
@@ -452,7 +473,7 @@ public final class BrowserModel: Identifiable {
     private func saveSettings() {
         guard let settingsStore, !isApplyingSettings else { return }
         let folder = location
-        let settings = FolderSettings(sort: sort, showsHiddenFiles: showsHiddenFiles)
+        let settings = FolderSettings(sort: sort, showsHiddenFiles: showsHiddenFiles, groupsByDate: groupsByDate)
         settingsLocation = folder
         // Saves are chained: two changes in a row must reach the database in the order they were
         // made, or the older one could land last and win.
@@ -576,8 +597,10 @@ public final class BrowserModel: Identifiable {
         let showsHiddenFiles = showsHiddenFiles
         let sizes = calculatesFolderSizes ? folderSizes : [:]
         let sort = sort
+        let groupsByDate = groupsByDate
         guard listing.count > Self.backgroundSortThreshold else {
-            arranged = Self.arrange(listing, showsHiddenFiles: showsHiddenFiles, sizes: sizes, sort: sort)
+            arranged = Self.arrange(
+                listing, showsHiddenFiles: showsHiddenFiles, sizes: sizes, sort: sort, groupsByDate: groupsByDate)
             applyFilter()
             return
         }
@@ -585,7 +608,9 @@ public final class BrowserModel: Identifiable {
         // main thread and the list keeps its current order until the new one is ready.
         arrangeTask = Task {
             let sorted = await Task.detached(priority: .userInitiated) {
-                Self.arrange(listing, showsHiddenFiles: showsHiddenFiles, sizes: sizes, sort: sort)
+                Self.arrange(
+                    listing, showsHiddenFiles: showsHiddenFiles, sizes: sizes, sort: sort,
+                    groupsByDate: groupsByDate)
             }.value
             guard !Task.isCancelled else { return }
             arranged = sorted
@@ -608,7 +633,8 @@ public final class BrowserModel: Identifiable {
     }
 
     private nonisolated static func arrange(
-        _ listing: [FileItem], showsHiddenFiles: Bool, sizes: [String: Int64], sort: FileSort
+        _ listing: [FileItem], showsHiddenFiles: Bool, sizes: [String: Int64], sort: FileSort,
+        groupsByDate: Bool
     ) -> [FileItem] {
         var visible = showsHiddenFiles ? listing : listing.filter { !$0.isHidden }
         if !sizes.isEmpty {
@@ -618,6 +644,8 @@ public final class BrowserModel: Identifiable {
                 }
             }
         }
-        return sort.sorted(visible)
+        let sorted = sort.sorted(visible)
+        // Sections come most recent first; inside a section the chosen sort applies.
+        return groupsByDate ? DateGroup.grouped(sorted, now: Date()) : sorted
     }
 }

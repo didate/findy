@@ -202,6 +202,16 @@ public struct BrowserCommands: Commands {
 
             Toggle(
                 isOn: Binding(
+                    get: { workspace?.activePane.groupsByDate ?? false },
+                    set: { workspace?.activePane.groupsByDate = $0 }
+                )
+            ) {
+                Text("Group by Date", bundle: .module)
+            }
+            .disabled(workspace == nil)
+
+            Toggle(
+                isOn: Binding(
                     get: { workspace?.calculatesFolderSizes ?? false },
                     set: { workspace?.calculatesFolderSizes = $0 }
                 )

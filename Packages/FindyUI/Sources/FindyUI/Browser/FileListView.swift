@@ -18,6 +18,8 @@ struct FileListView: NSViewRepresentable {
     let gitChanges: GitChanges?
     /// Passed so the rows are redrawn when files are cut or stop being cut.
     let cutFiles: Set<URL>
+    /// Passed so the sections appear or go away when the option changes.
+    let groupsByDate: Bool
     let isActive: Bool
     let onActivate: () -> Void
     let onSwitchPane: () -> Void
@@ -34,6 +36,9 @@ struct FileListView: NSViewRepresentable {
         tableView.allowsColumnReordering = false
         tableView.columnAutoresizingStyle = .firstColumnOnlyAutoresizingStyle
         tableView.rowHeight = 24
+        // Section headings scroll with their rows: a floating one would hide the first row of
+        // an inset list while it is being selected.
+        tableView.floatsGroupRows = false
         tableView.setAccessibilityLabel(String(localized: "Files", bundle: .module))
         // Files can be dragged out to any app and dropped in from any app.
         tableView.registerForDraggedTypes([.fileURL])
@@ -114,7 +119,16 @@ struct FileListView: NSViewRepresentable {
         var parent: FileListView
         weak var tableView: FileTableView?
 
+        /// What a table row shows: a file, or the heading of a section when the list is grouped.
+        private enum Row {
+            case heading(DateGroup)
+            case item(FileItem)
+        }
+
         private var items: [FileItem] = []
+        /// `items` with a heading before each section. The same as `items` when nothing is grouped.
+        private var rows: [Row] = []
+        private var isGrouped = false
         private var location: URL?
         /// True while the coordinator pushes model state into the table, so the table's delegate
         /// callbacks are not mistaken for user actions and echoed back to the model.
@@ -179,8 +193,10 @@ struct FileListView: NSViewRepresentable {
             let locationChanged = location != newLocation
             location = newLocation
             if locationChanged { cancelIconLoading() }
-            if items != newItems {
+            if items != newItems || isGrouped != model.groupsByDate {
                 items = newItems
+                isGrouped = model.groupsByDate
+                rebuildRows()
                 tableView.reloadData()
                 select(selection, in: tableView)
                 // A refresh of the same folder must not move the user's scroll position.
@@ -198,35 +214,79 @@ struct FileListView: NSViewRepresentable {
                 cutFiles = parent.cutFiles
                 // Only the names show these. Reloading that column keeps the selection.
                 tableView.reloadData(
-                    forRowIndexes: IndexSet(integersIn: 0..<items.count), columnIndexes: IndexSet(integer: 0))
+                    forRowIndexes: IndexSet(integersIn: 0..<rows.count), columnIndexes: IndexSet(integer: 0))
+            }
+        }
+
+        /// The model lists the files already in section order: a heading goes wherever the
+        /// section changes.
+        private func rebuildRows() {
+            guard isGrouped else {
+                rows = items.map(Row.item)
+                return
+            }
+            var result: [Row] = []
+            result.reserveCapacity(items.count + 8)
+            var current: DateGroup?
+            for item in items {
+                let group = model.dateGroup(of: item)
+                if group != current {
+                    result.append(.heading(group))
+                    current = group
+                }
+                result.append(.item(item))
+            }
+            rows = result
+        }
+
+        private func item(at row: Int) -> FileItem? {
+            guard rows.indices.contains(row), case .item(let item) = rows[row] else { return nil }
+            return item
+        }
+
+        private func row(of url: URL) -> Int? {
+            rows.firstIndex { row in
+                if case .item(let item) = row { item.url == url } else { false }
             }
         }
 
         private func select(_ selection: Set<URL>, in tableView: NSTableView) {
             var indexes = IndexSet()
             if !selection.isEmpty {
-                for (row, item) in items.enumerated() where selection.contains(item.url) {
-                    indexes.insert(row)
+                for (row, entry) in rows.enumerated() {
+                    if case .item(let item) = entry, selection.contains(item.url) { indexes.insert(row) }
                 }
             }
             tableView.selectRowIndexes(indexes, byExtendingSelection: false)
         }
 
         private func selectedURLs(in tableView: NSTableView) -> Set<URL> {
-            Set(tableView.selectedRowIndexes.compactMap { items.indices.contains($0) ? items[$0].url : nil })
+            Set(tableView.selectedRowIndexes.compactMap { item(at: $0)?.url })
         }
 
         // MARK: Data source and delegate
 
         func numberOfRows(in tableView: NSTableView) -> Int {
-            items.count
+            rows.count
+        }
+
+        func tableView(_ tableView: NSTableView, isGroupRow row: Int) -> Bool {
+            rows.indices.contains(row) && item(at: row) == nil
+        }
+
+        func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool {
+            // A heading is not a file: the arrow keys step over it.
+            item(at: row) != nil
         }
 
         func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+            guard rows.indices.contains(row) else { return nil }
+            if case .heading(let group) = rows[row] {
+                return headingCell(in: tableView, titled: group.title)
+            }
             guard let tableColumn, let column = Column(rawValue: tableColumn.identifier.rawValue),
-                items.indices.contains(row)
+                let item = item(at: row)
             else { return nil }
-            let item = items[row]
             let cell = dequeueCell(in: tableView, for: column)
 
             switch column {
@@ -280,17 +340,16 @@ struct FileListView: NSViewRepresentable {
         }
 
         @objc func openClickedRow(_ sender: NSTableView) {
-            let row = sender.clickedRow
-            guard items.indices.contains(row) else { return }
-            model.open(items[row])
+            guard let item = item(at: sender.clickedRow) else { return }
+            model.open(item)
         }
 
         // MARK: Drag and drop
 
         func tableView(_ tableView: NSTableView, pasteboardWriterForRow row: Int) -> (any NSPasteboardWriting)? {
             // No drag while a name is being edited: the drag would start from the text field.
-            guard editing == nil, items.indices.contains(row) else { return nil }
-            return items[row].url as NSURL
+            guard editing == nil, let item = item(at: row) else { return nil }
+            return item.url as NSURL
         }
 
         func tableView(
@@ -325,8 +384,8 @@ struct FileListView: NSViewRepresentable {
         private func dropDestination(
             in tableView: NSTableView, row: Int, dropOperation: NSTableView.DropOperation
         ) -> URL {
-            if dropOperation == .on, items.indices.contains(row), items[row].isFolder {
-                return items[row].url
+            if dropOperation == .on, let item = item(at: row), item.isFolder {
+                return item.url
             }
             tableView.setDropRow(-1, dropOperation: .on)
             return model.location
@@ -459,7 +518,7 @@ struct FileListView: NSViewRepresentable {
         // MARK: Renaming in place
 
         private func beginEditing(_ url: URL) {
-            guard let tableView, let row = items.firstIndex(where: { $0.url == url }) else {
+            guard let tableView, let row = row(of: url), let item = item(at: row) else {
                 model.cancelRename()
                 return
             }
@@ -478,8 +537,8 @@ struct FileListView: NSViewRepresentable {
             field.delegate = self
             tableView.window?.makeFirstResponder(field)
             // Select the name without its extension, so typing replaces only the name.
-            let name = items[row].name as NSString
-            let stemLength = items[row].isDirectory ? name.length : (name.deletingPathExtension as NSString).length
+            let name = item.name as NSString
+            let stemLength = item.isDirectory ? name.length : (name.deletingPathExtension as NSString).length
             let length = stemLength > 0 ? stemLength : name.length
             field.currentEditor()?.selectedRange = NSRange(location: 0, length: length)
         }
@@ -515,6 +574,35 @@ struct FileListView: NSViewRepresentable {
         }
 
         // MARK: Cells
+
+        private static let headingIdentifier = NSUserInterfaceItemIdentifier("heading")
+
+        /// The heading of a section. It spans the whole row.
+        private func headingCell(in tableView: NSTableView, titled title: String) -> NSTableCellView {
+            let cell: NSTableCellView
+            if let reused = tableView.makeView(withIdentifier: Self.headingIdentifier, owner: nil)
+                as? NSTableCellView
+            {
+                cell = reused
+            } else {
+                cell = NSTableCellView()
+                cell.identifier = Self.headingIdentifier
+                let textField = NSTextField(labelWithString: "")
+                textField.translatesAutoresizingMaskIntoConstraints = false
+                textField.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold)
+                textField.textColor = .secondaryLabelColor
+                textField.lineBreakMode = .byTruncatingTail
+                cell.addSubview(textField)
+                cell.textField = textField
+                NSLayoutConstraint.activate([
+                    textField.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 26),
+                    textField.trailingAnchor.constraint(lessThanOrEqualTo: cell.trailingAnchor, constant: -4),
+                    textField.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+                ])
+            }
+            cell.textField?.stringValue = title
+            return cell
+        }
 
         private func dequeueCell(in tableView: NSTableView, for column: Column) -> NSTableCellView {
             if let reused = tableView.makeView(withIdentifier: column.identifier, owner: nil) as? NSTableCellView {
@@ -602,7 +690,7 @@ struct FileListView: NSViewRepresentable {
                 let icon = NSImage(cgImage: image, size: size)
                 if loadedIcons.count >= Self.loadedIconsLimit { loadedIcons.removeAll() }
                 loadedIcons[key] = icon
-                guard let tableView, let row = items.firstIndex(where: { $0.url == url }),
+                guard let tableView, let row = row(of: url),
                     let cell = tableView.view(atColumn: 0, row: row, makeIfNecessary: false) as? NSTableCellView
                 else { return }
                 cell.imageView?.image = icon

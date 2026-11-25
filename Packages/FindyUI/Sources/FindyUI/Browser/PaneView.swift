@@ -80,6 +80,7 @@ struct PaneView: View {
                 renamingURL: model.renamingURL,
                 gitChanges: model.gitChanges,
                 cutFiles: FilePasteboard.cutFiles,
+                groupsByDate: model.groupsByDate,
                 isActive: isActive,
                 onActivate: onActivate,
                 onSwitchPane: onSwitchPane

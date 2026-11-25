@@ -531,6 +531,16 @@
         }
       }
     },
+    "Group by Date" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grouper par date"
+          }
+        }
+      }
+    },
     "Hide Second Pane" : {
       "localizations" : {
         "fr" : {
@@ -671,6 +681,16 @@
         }
       }
     },
+    "No Date" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sans date"
+          }
+        }
+      }
+    },
     "No Matches" : {
       "localizations" : {
         "fr" : {
@@ -747,6 +767,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Chemin"
+          }
+        }
+      }
+    },
+    "Previous 30 Days" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 derniers jours"
+          }
+        }
+      }
+    },
+    "Previous 7 Days" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 derniers jours"
           }
         }
       }
@@ -931,6 +971,16 @@
         }
       }
     },
+    "Today" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aujourd’hui"
+          }
+        }
+      }
+    },
     "Undo" : {
       "localizations" : {
         "fr" : {
@@ -1007,6 +1057,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opération en cours…"
+          }
+        }
+      }
+    },
+    "Yesterday" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hier"
           }
         }
       }

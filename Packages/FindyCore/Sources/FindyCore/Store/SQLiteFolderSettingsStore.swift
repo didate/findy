@@ -33,7 +33,7 @@ public final class SQLiteFolderSettingsStore: FolderSettingsStoring {
             let row = try Row.fetchOne(
                 db,
                 sql: """
-                    SELECT sort_key, ascending, folders_first, shows_hidden_files
+                    SELECT sort_key, ascending, folders_first, shows_hidden_files, groups_by_date
                     FROM folder_settings WHERE path = ?
                     """,
                 arguments: [path])
@@ -45,7 +45,8 @@ public final class SQLiteFolderSettingsStore: FolderSettingsStoring {
                     key: FileSort.Key(rawValue: sortKey) ?? .name,
                     ascending: row["ascending"],
                     foldersFirst: row["folders_first"]),
-                showsHiddenFiles: row["shows_hidden_files"])
+                showsHiddenFiles: row["shows_hidden_files"],
+                groupsByDate: row["groups_by_date"])
         }
     }
 
@@ -54,17 +55,19 @@ public final class SQLiteFolderSettingsStore: FolderSettingsStoring {
         try await database.write { db in
             try db.execute(
                 sql: """
-                    INSERT INTO folder_settings (path, sort_key, ascending, folders_first, shows_hidden_files)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO folder_settings
+                        (path, sort_key, ascending, folders_first, shows_hidden_files, groups_by_date)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     ON CONFLICT(path) DO UPDATE SET
                         sort_key = excluded.sort_key,
                         ascending = excluded.ascending,
                         folders_first = excluded.folders_first,
-                        shows_hidden_files = excluded.shows_hidden_files
+                        shows_hidden_files = excluded.shows_hidden_files,
+                        groups_by_date = excluded.groups_by_date
                     """,
                 arguments: [
                     path, settings.sort.key.rawValue, settings.sort.ascending, settings.sort.foldersFirst,
-                    settings.showsHiddenFiles,
+                    settings.showsHiddenFiles, settings.groupsByDate,
                 ])
         }
     }
@@ -82,6 +85,12 @@ public final class SQLiteFolderSettingsStore: FolderSettingsStoring {
                 table.column("ascending", .boolean).notNull()
                 table.column("folders_first", .boolean).notNull()
                 table.column("shows_hidden_files", .boolean).notNull()
+            }
+        }
+        // Folders saved by 0.1 keep their settings and start ungrouped.
+        migrator.registerMigration("v2-group-by-date") { db in
+            try db.alter(table: "folder_settings") { table in
+                table.add(column: "groups_by_date", .boolean).notNull().defaults(to: false)
             }
         }
         return migrator

@@ -309,6 +309,7 @@ private struct FakeFileSystem: FileSystemProviding {
 
         model.sort = FileSort(key: .size, ascending: false)
         model.showsHiddenFiles = true
+        model.groupsByDate = true
         await model.settingsTask?.value
 
         // A folder the user never customized starts from the defaults.
@@ -316,6 +317,7 @@ private struct FakeFileSystem: FileSystemProviding {
         await model.loadTask?.value
         #expect(model.sort == FileSort())
         #expect(!model.showsHiddenFiles)
+        #expect(!model.groupsByDate)
         #expect(try await store.settings(for: sub) == nil)
 
         model.goBack()
@@ -329,6 +331,7 @@ private struct FakeFileSystem: FileSystemProviding {
         await other.loadTask?.value
         #expect(other.sort == FileSort(key: .size, ascending: false))
         #expect(other.showsHiddenFiles)
+        #expect(other.groupsByDate)
     }
 
     @Test func withoutAStoreSettingsFollowTheUserAround() async {
@@ -537,5 +540,33 @@ private struct FakeFileSystem: FileSystemProviding {
 
         #expect(model.items.isEmpty)
         #expect(model.location == root)
+    }
+
+    @Test func groupsByDateWithTheSortAppliedInsideEachSection() async {
+        let now = Date()
+        func item(_ name: String, daysAgo: Double, isDirectory: Bool = false) -> FileItem {
+            FileItem(
+                url: URL(fileURLWithPath: "/dated/\(name)"), isDirectory: isDirectory,
+                modificationDate: now.addingTimeInterval(-daysAgo * 86_400))
+        }
+        let listing = [
+            item("old b.txt", daysAgo: 400), item("new b.txt", daysAgo: 0), item("old a.txt", daysAgo: 400),
+            item("new folder", daysAgo: 0, isDirectory: true), item("new a.txt", daysAgo: 0),
+        ]
+        let model = BrowserModel(
+            location: URL(fileURLWithPath: "/dated"), fileSystem: FakeFileSystem(listings: ["/dated": listing]))
+        model.reload()
+        await model.loadTask?.value
+
+        model.groupsByDate = true
+
+        #expect(model.items.map(\.name) == ["new folder", "new a.txt", "new b.txt", "old a.txt", "old b.txt"])
+        #expect(model.dateGroup(of: listing[1]) == .today)
+
+        model.sort.ascending = false
+        #expect(model.items.map(\.name) == ["new folder", "new b.txt", "new a.txt", "old b.txt", "old a.txt"])
+
+        model.groupsByDate = false
+        #expect(model.items.map(\.name) == ["new folder", "old b.txt", "old a.txt", "new b.txt", "new a.txt"])
     }
 }
