@@ -27,8 +27,12 @@ Findy needs macOS 14 or later. It runs on Apple Silicon and Intel.
 With Homebrew:
 
 ```bash
-brew install --cask didate/tap/findy
+brew tap didate/tap
+brew trust didate/tap
+brew install --cask findy
 ```
+
+`brew trust` exists in recent versions of Homebrew, which refuse casks from a third-party tap until it is trusted. If your Homebrew does not know the command, skip that line.
 
 Or download `Findy-<version>.dmg` from the [latest release](https://github.com/didate/findy/releases/latest), open it and drag Findy to Applications.
 

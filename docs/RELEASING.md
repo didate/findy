@@ -38,7 +38,11 @@ Upload the exact image whose SHA-256 goes in the cask: two builds of the same so
 Copy `packaging/homebrew/findy.rb` to `Casks/findy.rb` in the tap repository (`didate/homebrew-tap`) with the new `version` and `sha256`. People then install with:
 
 ```bash
-brew install --cask didate/tap/findy
+brew tap didate/tap
+brew trust didate/tap
+brew install --cask findy
 ```
+
+`brew trust` exists in recent versions of Homebrew, which refuse casks from a third-party tap until it is trusted. If your Homebrew does not know the command, skip that line.
 
 The official `homebrew/cask` repository only accepts notarized apps, hence the tap.
