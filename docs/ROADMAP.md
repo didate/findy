@@ -42,7 +42,7 @@
 - [x] Cut files are dimmed until they are pasted
 - [x] Re-sorting a folder of more than 2,000 entries no longer holds the main thread (76 ms before for 10,000 files, a few microseconds now)
 - [x] View > Group by Date: sections like Finder's (Today, Yesterday, Previous 7 Days…), remembered per folder
-- [x] v0.2.0 published on GitHub and in the Homebrew tap
+- [x] v0.2.0 and v0.2.1 published on GitHub and in the Homebrew tap
 - [x] Releases signed with a stable self-signed certificate, so macOS stops asking for the same permissions after each update
 
 ## Next
