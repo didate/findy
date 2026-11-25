@@ -32,6 +32,8 @@ private struct FakeFileSystem: FileSystemProviding {
 
     func cloudLocations() async -> [Volume] { [] }
 
+    func eject(_ volume: URL) async throws {}
+
     func gitInfo(for directory: URL) async -> GitInfo? { git[directory.path] }
 
     func gitChanges(inRepositoryAt root: URL) async -> GitChanges? {
@@ -51,7 +53,11 @@ private struct FakeFileSystem: FileSystemProviding {
     private let sub = URL(fileURLWithPath: "/fake/Sub")
 
     private func makeModel() -> BrowserModel {
-        let fileSystem = FakeFileSystem(listings: [
+        BrowserModel(location: root, fileSystem: makeFileSystem())
+    }
+
+    private func makeFileSystem() -> FakeFileSystem {
+        FakeFileSystem(listings: [
             "/fake": [
                 FileItem(url: URL(fileURLWithPath: "/fake/b.txt"), size: 2),
                 FileItem(url: URL(fileURLWithPath: "/fake/.secret"), isHidden: true, size: 1),
@@ -60,7 +66,6 @@ private struct FakeFileSystem: FileSystemProviding {
             ],
             "/fake/Sub": [],
         ])
-        return BrowserModel(location: root, fileSystem: fileSystem)
     }
 
     @Test func listsSortedItemsWithoutHiddenFiles() async {
@@ -568,5 +573,39 @@ private struct FakeFileSystem: FileSystemProviding {
 
         model.groupsByDate = false
         #expect(model.items.map(\.name) == ["new folder", "old b.txt", "old a.txt", "new b.txt", "new a.txt"])
+    }
+
+    @Test func opensTheSelectedFilesWithTheChosenApplication() async {
+        var opened: [([String], String)] = []
+        let model = BrowserModel(
+            location: root, fileSystem: makeFileSystem(),
+            openWithApplication: { urls, application in opened.append((urls.map(\.path), application.path)) })
+        model.reload()
+        await model.loadTask?.value
+        let application = URL(fileURLWithPath: "/Applications/TextEdit.app")
+
+        // Nothing selected: nothing to open.
+        model.openSelection(withApplicationAt: application)
+        model.selection = [URL(fileURLWithPath: "/fake/b.txt"), URL(fileURLWithPath: "/fake/a.txt")]
+        model.openSelection(withApplicationAt: application)
+        await model.terminalTask?.value
+
+        #expect(opened.count == 1)
+        #expect(opened.first?.0 == ["/fake/a.txt", "/fake/b.txt"])
+        #expect(opened.first?.1 == "/Applications/TextEdit.app")
+    }
+
+    @Test func showsTheSelectionOrTheFolderInFinder() async {
+        var revealed: [[String]] = []
+        let model = BrowserModel(
+            location: root, fileSystem: makeFileSystem(), revealInFinder: { revealed.append($0.map(\.path)) })
+        model.reload()
+        await model.loadTask?.value
+
+        model.showInFinder()
+        model.selection = [URL(fileURLWithPath: "/fake/a.txt")]
+        model.showInFinder()
+
+        #expect(revealed == [["/fake"], ["/fake/a.txt"]])
     }
 }

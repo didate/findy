@@ -4,9 +4,26 @@ import Testing
 
 @testable import FindyUI
 
+/// Remembers what was ejected, and can be told to refuse.
+private actor EjectLog {
+    var ejected: [String] = []
+    func record(_ path: String) { ejected.append(path) }
+}
+
 private struct FakeLocations: FileSystemProviding {
+    struct Busy: LocalizedError {
+        var errorDescription: String? { "The volume is in use." }
+    }
+
     var folders: Set<String> = []
     var cloud: [Volume] = []
+    var refusesToEject = false
+    let log = EjectLog()
+
+    func eject(_ volume: URL) async throws {
+        if refusesToEject { throw Busy() }
+        await log.record(volume.path)
+    }
 
     func contents(of directory: URL) async throws -> [FileItem] { [] }
     func directorySize(of directory: URL) async throws -> Int64 { 0 }
@@ -61,6 +78,31 @@ private struct FakeLocations: FileSystemProviding {
 
             #expect(model.favorites.count == 4)
             #expect(!model.isFavorite(home))
+        }
+    }
+
+    @Test func ejectsAVolumeAfterLettingThePanesLeave() async throws {
+        let fileSystem = FakeLocations()
+        let usb = Volume(url: URL(fileURLWithPath: "/Volumes/USB"), name: "USB", isEjectable: true)
+        try await withModel(fileSystem) { model in
+            var left = false
+
+            model.eject(usb) { left = true }
+            await model.ejectTask?.value
+
+            #expect(left)
+            #expect(await fileSystem.log.ejected == ["/Volumes/USB"])
+            #expect(model.alertMessage == nil)
+        }
+    }
+
+    @Test func tellsTheUserWhenAVolumeCannotBeEjected() async throws {
+        let usb = Volume(url: URL(fileURLWithPath: "/Volumes/USB"), name: "USB", isEjectable: true)
+        try await withModel(FakeLocations(refusesToEject: true)) { model in
+            model.eject(usb)
+            await model.ejectTask?.value
+
+            #expect(model.alertMessage == "The volume is in use.")
         }
     }
 

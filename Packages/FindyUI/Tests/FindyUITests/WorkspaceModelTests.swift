@@ -37,6 +37,22 @@ import Testing
         #expect(workspace.activePane.location.path == "/tmp")
     }
 
+    @Test func panesLeaveAVolumeAboutToBeEjected() {
+        let refuge = FileManager.default.temporaryDirectory.canonicalLocation
+        let workspace = WorkspaceModel(location: URL(fileURLWithPath: "/Volumes/USB/Photos"), defaults: makeDefaults())
+        workspace.toggleDualPane()
+        workspace.panes[1].navigate(to: URL(fileURLWithPath: "/Volumes/USB-2/Docs"))
+
+        workspace.leave(URL(fileURLWithPath: "/Volumes/USB/"), for: refuge)
+
+        #expect(workspace.panes[0].location == refuge)
+        // A volume whose name merely starts the same way is another volume.
+        #expect(workspace.panes[1].location.path == "/Volumes/USB-2/Docs")
+        // The startup disk is never left.
+        workspace.leave(URL(fileURLWithPath: "/"), for: URL(fileURLWithPath: "/nowhere"))
+        #expect(workspace.panes[0].location == refuge)
+    }
+
     @Test func theSecondPaneOpensOnTheSameFolderAndSharesTheHistory() {
         let workspace = WorkspaceModel(location: URL(fileURLWithPath: "/tmp"), defaults: makeDefaults())
 

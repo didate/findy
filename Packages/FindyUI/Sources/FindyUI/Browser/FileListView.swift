@@ -471,6 +471,7 @@ struct FileListView: NSViewRepresentable {
             let menu = NSMenu()
             menu.autoenablesItems = false
             addItem(to: menu, String(localized: "Open", bundle: .module), #selector(menuOpen), enabled: count > 0)
+            if let openWith = openWithItem() { menu.addItem(openWith) }
             addItem(to: menu, String(localized: "Open in Terminal", bundle: .module), #selector(menuTerminal))
             addItem(to: menu, String(localized: "Open in Editor", bundle: .module), #selector(menuEditor))
             addItem(
@@ -488,11 +489,51 @@ struct FileListView: NSViewRepresentable {
             addItem(
                 to: menu, String(localized: "Paste", bundle: .module), #selector(menuPaste),
                 enabled: FilePasteboard.hasFiles)
+            addItem(
+                to: menu, String(localized: "Duplicate", bundle: .module), #selector(menuDuplicate),
+                enabled: count > 0)
             addItem(to: menu, String(localized: "Copy Path", bundle: .module), #selector(menuCopyPath))
+            addItem(to: menu, String(localized: "Show in Finder", bundle: .module), #selector(menuShowInFinder))
             menu.addItem(.separator())
             addItem(to: menu, String(localized: "New Folder", bundle: .module), #selector(menuNewFolder))
             addItem(to: menu, String(localized: "New File", bundle: .module), #selector(menuNewFile))
             return menu
+        }
+
+        /// The Open With submenu, for a selection made of files only. The applications offered are
+        /// those that can open the first selected file.
+        private func openWithItem() -> NSMenuItem? {
+            let selected = model.selectedItems
+            guard let first = selected.first, !selected.contains(where: \.isFolder) else { return nil }
+            let submenu = NSMenu()
+            submenu.autoenablesItems = false
+            for (index, choice) in ApplicationChoice.choices(for: first.url).enumerated() {
+                let title =
+                    index == 0 ? String(localized: "\(choice.name) (default)", bundle: .module) : choice.name
+                let item = NSMenuItem(title: title, action: #selector(menuOpenWith(_:)), keyEquivalent: "")
+                item.target = self
+                item.representedObject = choice.url
+                let icon = NSWorkspace.shared.icon(forFile: choice.url.path)
+                icon.size = NSSize(width: 16, height: 16)
+                item.image = icon
+                submenu.addItem(item)
+                if index == 0 { submenu.addItem(.separator()) }
+            }
+            if submenu.items.isEmpty {
+                let none = NSMenuItem(
+                    title: String(localized: "No Application Found", bundle: .module), action: nil, keyEquivalent: "")
+                none.isEnabled = false
+                submenu.addItem(none)
+            }
+            let item = NSMenuItem(
+                title: String(localized: "Open With", bundle: .module), action: nil, keyEquivalent: "")
+            item.submenu = submenu
+            return item
+        }
+
+        @objc private func menuOpenWith(_ sender: NSMenuItem) {
+            guard let application = sender.representedObject as? URL else { return }
+            model.openSelection(withApplicationAt: application)
         }
 
         private func addItem(to menu: NSMenu, _ title: String, _ action: Selector, enabled: Bool = true) {
@@ -505,6 +546,8 @@ struct FileListView: NSViewRepresentable {
         @objc private func menuOpen() { model.openSelection() }
         @objc private func menuEditor() { model.openEditor() }
         @objc private func menuCopyPath() { model.copyPath() }
+        @objc private func menuDuplicate() { model.duplicateSelection() }
+        @objc private func menuShowInFinder() { model.showInFinder() }
         @objc private func menuTerminal() { model.openTerminal() }
         @objc private func menuAddToSidebar() { FavoritesStore.shared.add(model.foldersForSidebar) }
         @objc private func menuRename() { model.beginRenamingSelection() }

@@ -89,6 +89,22 @@ public struct BrowserCommands: Commands {
             .disabled(workspace?.activePane.foldersForSidebar.isEmpty != false)
 
             Button {
+                workspace?.activePane.showInFinder()
+            } label: {
+                Text("Show in Finder", bundle: .module)
+            }
+            .keyboardShortcut("r", modifiers: [.command, .shift])
+            .disabled(workspace == nil)
+
+            Button {
+                workspace?.activePane.duplicateSelection()
+            } label: {
+                Text("Duplicate", bundle: .module)
+            }
+            .keyboardShortcut("d", modifiers: .command)
+            .disabled(workspace?.activePane.selection.isEmpty != false)
+
+            Button {
                 workspace?.activePane.beginRenamingSelection()
             } label: {
                 Text("Rename", bundle: .module)

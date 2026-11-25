@@ -74,6 +74,16 @@ public final class WorkspaceModel {
         }
     }
 
+    /// Sends every pane showing a folder of `volume`, which is about to be ejected, to `refuge`
+    /// (the home folder by default): a pane left there would keep watching a disk that is going away.
+    public func leave(_ volume: URL, for refuge: URL = FileManager.default.homeDirectoryForCurrentUser) {
+        let root = volume.canonicalLocation.path
+        guard root != "/" else { return }
+        for pane in panes where pane.location.path == root || pane.location.path.hasPrefix(root + "/") {
+            pane.navigate(to: refuge)
+        }
+    }
+
     /// Gives the user's attention to the other pane.
     public func switchPane() {
         guard isDualPane else { return }

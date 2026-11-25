@@ -19,6 +19,8 @@ public struct BrowserView: View {
                 workspace.activePane.navigate(to: url)
             } onDrop: { folder, urls, move in
                 workspace.activePane.drop(urls, into: folder, move: move)
+            } onEject: { volume in
+                sidebar.eject(volume) { workspace.leave(volume.url) }
             }
             .navigationSplitViewColumnWidth(min: 160, ideal: 200, max: 320)
         } detail: {
@@ -40,6 +42,7 @@ public struct BrowserView: View {
         .background(WindowAccessor { BrowserWindow.windowDidAppear($0) })
         .focusedSceneValue(\.workspace, workspace)
         .task { await sidebar.loadLocations() }
+        .task { await sidebar.followVolumes() }
     }
 
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {

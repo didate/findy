@@ -45,6 +45,13 @@
 - [x] v0.2.0 and v0.2.1 published on GitHub and in the Homebrew tap
 - [x] Releases signed with a stable self-signed certificate, so macOS stops asking for the same permissions after each update
 
+## v0.3 (in progress)
+
+- [x] Open With, in the context menu of a file
+- [x] Eject removable volumes, disk images and network shares from the sidebar; the sidebar follows volumes as they come and go
+- [x] Duplicate (⌘D)
+- [x] Show in Finder (⇧⌘R)
+
 ## Next
 
 - [ ] Drop on tabs. The tabs are the system's own (see `docs/decisions/0002-native-window-tabs.md`) and AppKit offers no way to receive a drop on them: this needs either a custom tab bar or another gesture

@@ -126,6 +126,48 @@ import Testing
         let volumes = await LocalFileSystem().mountedVolumes()
 
         #expect(volumes.contains { $0.url.path == "/" })
+        // Nobody should be offered to eject the disk macOS runs from.
+        #expect(volumes.first { $0.url.path == "/" }?.isEjectable == false)
+    }
+
+    /// Runs `hdiutil` and waits for it. Returns whether it succeeded.
+    private func hdiutil(_ arguments: [String]) throws -> Bool {
+        let process = Process()
+        process.executableURL = URL(filePath: "/usr/bin/hdiutil")
+        process.arguments = arguments
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        try process.run()
+        process.waitUntilExit()
+        return process.terminationStatus == 0
+    }
+
+    @Test func aDiskImageIsListedAsEjectableAndCanBeEjected() async throws {
+        try await withScratchDirectory { directory in
+            // A disk image stands for a USB drive: both are volumes the user must eject.
+            let image = directory.appendingPathComponent("disk.dmg")
+            let mountPoint = directory.appendingPathComponent("mounted", isDirectory: true)
+            try FileManager.default.createDirectory(at: mountPoint, withIntermediateDirectories: false)
+            try #require(
+                try hdiutil(["create", "-quiet", "-size", "5m", "-fs", "HFS+", "-volname", "FindyTest", image.path]))
+            try #require(
+                try hdiutil(["attach", "-quiet", "-nobrowse", "-mountpoint", mountPoint.path, image.path]))
+            let fileSystem = LocalFileSystem()
+            let mounted = mountPoint.resolvingSymlinksInPath().path
+
+            // `-nobrowse` hides the volume from the listing, so its flags are read directly.
+            let values = try mountPoint.resourceValues(forKeys: [.volumeIsEjectableKey, .volumeIsInternalKey])
+            #expect(values.volumeIsEjectable == true || values.volumeIsInternal == false)
+
+            try await fileSystem.eject(mountPoint)
+
+            let stillMounted = FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: nil) ?? []
+            #expect(!stillMounted.contains { $0.resolvingSymlinksInPath().path == mounted })
+            // Ejecting what is no longer there reports an error instead of pretending.
+            await #expect(throws: (any Error).self) {
+                try await fileSystem.eject(mountPoint)
+            }
+        }
     }
 
     @Test func findsCloudFoldersUnderTheHomeFolder() async throws {

@@ -62,13 +62,29 @@ public struct LocalFileSystem: FileSystemProviding {
     public func mountedVolumes() async -> [Volume] {
         let urls =
             FileManager.default.mountedVolumeURLs(
-                includingResourceValuesForKeys: [.volumeLocalizedNameKey],
+                includingResourceValuesForKeys: Array(Self.volumeKeys),
                 options: [.skipHiddenVolumes]
             ) ?? []
         return urls.map { url in
-            let name = (try? url.resourceValues(forKeys: [.volumeLocalizedNameKey]))?.volumeLocalizedName
-            return Volume(url: url, name: name ?? url.lastPathComponent)
+            let values = try? url.resourceValues(forKeys: Self.volumeKeys)
+            // The startup disk reports itself as internal and is never offered for ejection.
+            let isEjectable =
+                url.path != "/"
+                && (values?.volumeIsEjectable == true || values?.volumeIsRemovable == true
+                    || values?.volumeIsInternal == false)
+            return Volume(
+                url: url, name: values?.volumeLocalizedName ?? url.lastPathComponent, isEjectable: isEjectable)
         }
+    }
+
+    private static let volumeKeys: Set<URLResourceKey> = [
+        .volumeLocalizedNameKey, .volumeIsEjectableKey, .volumeIsRemovableKey, .volumeIsInternalKey,
+    ]
+
+    public func eject(_ volume: URL) async throws {
+        // Every partition goes with it: a drive with two volumes cannot be unplugged while one of
+        // them is still mounted. The system's error already names the volume and what holds it.
+        try await FileManager.default.unmountVolume(at: volume, options: [.allPartitionsAndEjectDisk])
     }
 
     public func cloudLocations() async -> [Volume] {

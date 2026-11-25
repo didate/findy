@@ -19,6 +19,10 @@ public protocol FileSystemProviding: Sendable {
     /// Lists the volumes the user can browse.
     func mountedVolumes() async -> [Volume]
 
+    /// Unmounts the volume at `volume` and ejects its disk, so it can be unplugged. Fails when a
+    /// file on it is still in use.
+    func eject(_ volume: URL) async throws
+
     /// Lists the cloud storage folders synced on this Mac (iCloud Drive, Google Drive…).
     func cloudLocations() async -> [Volume]
 

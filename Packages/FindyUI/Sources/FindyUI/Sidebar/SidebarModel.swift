@@ -1,3 +1,4 @@
+import AppKit
 import FindyCore
 import Foundation
 import Observation
@@ -17,6 +18,10 @@ public final class SidebarModel {
     public var favorites: [Favorite] { store.urls.map(favorite(for:)) }
     public private(set) var cloudLocations: [Volume] = []
     public private(set) var volumes: [Volume] = []
+    /// A failure to tell the user about. Cleared when they dismiss it.
+    public var alertMessage: String?
+    /// The ejection in flight. Internal so tests can await it.
+    private(set) var ejectTask: Task<Void, Never>?
 
     private let fileSystem: any FileSystemProviding
     private let store: FavoritesStore
@@ -67,6 +72,37 @@ public final class SidebarModel {
     /// The symbol of a cloud storage folder: iCloud Drive has its own.
     public func systemImage(forCloudLocation location: Volume) -> String {
         location.url.lastPathComponent == "com~apple~CloudDocs" ? "icloud" : "cloud"
+    }
+
+    /// Reloads the locations each time a volume is plugged in or goes away, for as long as the
+    /// caller awaits it.
+    public func followVolumes() async {
+        await withTaskGroup(of: Void.self) { group in
+            for name in [NSWorkspace.didMountNotification, NSWorkspace.didUnmountNotification] {
+                group.addTask { [weak self] in
+                    // Only the fact that something changed crosses over: the notification itself
+                    // is not sendable.
+                    let changes = NSWorkspace.shared.notificationCenter.notifications(named: name).map { _ in () }
+                    for await _ in changes {
+                        await self?.loadLocations()
+                    }
+                }
+            }
+        }
+    }
+
+    /// Ejects `volume`. `beforeEjecting` runs first, so the panes can leave the volume: a folder
+    /// still shown would keep it busy.
+    public func eject(_ volume: Volume, beforeEjecting: @MainActor () -> Void = {}) {
+        beforeEjecting()
+        ejectTask = Task {
+            do {
+                try await fileSystem.eject(volume.url)
+                await loadLocations()
+            } catch {
+                alertMessage = error.localizedDescription
+            }
+        }
     }
 
     // MARK: Favorites

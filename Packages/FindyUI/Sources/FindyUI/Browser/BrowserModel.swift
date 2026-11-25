@@ -140,6 +140,8 @@ public final class BrowserModel: Identifiable {
     private let openFiles: @MainActor ([URL]) -> Void
     private let openInTerminal: @MainActor (URL) async throws -> Void
     private let openInEditor: @MainActor ([URL]) async throws -> Void
+    private let openWithApplication: @MainActor ([URL], URL) async throws -> Void
+    private let revealInFinder: @MainActor ([URL]) -> Void
     /// The listing as the disk gave it.
     private var allItems: [FileItem] = []
     /// The listing without what is hidden, with folder sizes, in display order. `items` is this
@@ -160,7 +162,7 @@ public final class BrowserModel: Identifiable {
     static let backgroundSortThreshold = 2_000
     /// The read of the Git branch and of the free space in flight. Internal so tests can await it.
     private(set) var statusTask: Task<Void, Never>?
-    /// The terminal or editor launch in flight. Internal so tests can await it.
+    /// The launch of another application in flight. Internal so tests can await it.
     private(set) var terminalTask: Task<Void, Never>?
 
     /// Sizes computed so far, by folder path. Kept across navigation so a folder seen before shows
@@ -183,7 +185,12 @@ public final class BrowserModel: Identifiable {
             for url in urls { NSWorkspace.shared.open(url) }
         },
         openInTerminal: @escaping @MainActor (URL) async throws -> Void = { try await TerminalLauncher.open($0) },
-        openInEditor: @escaping @MainActor ([URL]) async throws -> Void = { try await EditorLauncher.open($0) }
+        openInEditor: @escaping @MainActor ([URL]) async throws -> Void = { try await EditorLauncher.open($0) },
+        openWithApplication: @escaping @MainActor ([URL], URL) async throws -> Void = { urls, application in
+            _ = try await NSWorkspace.shared.open(
+                urls, withApplicationAt: application, configuration: NSWorkspace.OpenConfiguration())
+        },
+        revealInFinder: @escaping @MainActor ([URL]) -> Void = { NSWorkspace.shared.activateFileViewerSelecting($0) }
     ) {
         self.location = location.canonicalLocation
         self.fileSystem = fileSystem
@@ -195,6 +202,8 @@ public final class BrowserModel: Identifiable {
         self.openFiles = openFiles
         self.openInTerminal = openInTerminal
         self.openInEditor = openInEditor
+        self.openWithApplication = openWithApplication
+        self.revealInFinder = revealInFinder
     }
 
     // MARK: Navigation
@@ -283,6 +292,28 @@ public final class BrowserModel: Identifiable {
     public var foldersForSidebar: [URL] {
         let folders = selectedItems.filter(\.isFolder).map(\.url)
         return selection.isEmpty ? [location] : folders
+    }
+
+    // MARK: Other applications
+
+    /// Opens the selected files in the application at `application`, whatever their default one.
+    public func openSelection(withApplicationAt application: URL) {
+        let urls = selectedItems.map(\.url)
+        guard !urls.isEmpty else { return }
+        terminalTask = Task {
+            do {
+                try await openWithApplication(urls, application)
+            } catch {
+                report(error)
+            }
+        }
+    }
+
+    /// Shows the selection in a Finder window, or the folder shown when nothing is selected.
+    /// The way out for everything Findy leaves to Finder.
+    public func showInFinder() {
+        let selected = selectedItems.map(\.url)
+        revealInFinder(selected.isEmpty ? [location] : selected)
     }
 
     // MARK: Editor

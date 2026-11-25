@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ (default)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (par défaut)"
+          }
+        }
+      }
+    },
     "%@ available" : {
       "localizations" : {
         "fr" : {
@@ -421,6 +431,36 @@
         }
       }
     },
+    "Duplicate" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dupliquer"
+          }
+        }
+      }
+    },
+    "Eject" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Éjecter"
+          }
+        }
+      }
+    },
+    "Eject %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Éjecter %@"
+          }
+        }
+      }
+    },
     "Empty Folder" : {
       "localizations" : {
         "fr" : {
@@ -671,6 +711,16 @@
         }
       }
     },
+    "No Application Found" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune application trouvée"
+          }
+        }
+      }
+    },
     "No code editor Findy knows is installed on this Mac." : {
       "localizations" : {
         "fr" : {
@@ -747,6 +797,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ouvrir la sélection"
+          }
+        }
+      }
+    },
+    "Open With" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir avec"
           }
         }
       }
@@ -891,6 +951,16 @@
         }
       }
     },
+    "Show in Finder" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher dans le Finder"
+          }
+        }
+      }
+    },
     "Show or Hide Hidden Files" : {
       "localizations" : {
         "fr" : {
@@ -967,6 +1037,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "L’opération n’a pas pu être effectuée."
+          }
+        }
+      }
+    },
+    "The volume couldn’t be ejected." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le volume n’a pas pu être éjecté."
           }
         }
       }

@@ -11,6 +11,11 @@ extension BrowserModel {
         FilePasteboard.write(selectedItems.map(\.url), cut: true)
     }
 
+    /// Makes a copy of each selected entry next to it, under a free name.
+    public func duplicateSelection() {
+        transfer(selectedItems.map(\.url), move: false)
+    }
+
     /// Pastes the files of the clipboard here: a move if they were cut in Findy, a copy otherwise.
     public func paste() {
         guard let (urls, isCut) = FilePasteboard.read() else { return }

@@ -312,6 +312,26 @@ private struct StallingOperations: FileOperating {
         }
     }
 
+    @Test func duplicatesTheSelectionNextToItAndUndoesIt() async throws {
+        try await withTransferSetup { model, source, _ in
+            model.navigate(to: source)
+            await model.loadTask?.value
+            model.selection = Set(model.items.map(\.url))
+
+            model.duplicateSelection()
+            await settle(model)
+
+            #expect(names(in: source) == ["one 2.txt", "one.txt", "two 2.txt", "two.txt"])
+            #expect(
+                content(of: source.appendingPathComponent("one 2.txt"))
+                    == content(of: source.appendingPathComponent("one.txt")))
+
+            model.undo()
+            await settle(model)
+            #expect(names(in: source) == ["one.txt", "two.txt"])
+        }
+    }
+
     @Test func copyingAFileWhereItAlreadyIsDuplicatesIt() async throws {
         try await withTransferSetup { model, source, destination in
             model.navigate(to: source)

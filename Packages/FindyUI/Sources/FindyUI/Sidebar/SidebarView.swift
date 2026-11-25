@@ -2,12 +2,14 @@ import FindyCore
 import SwiftUI
 
 struct SidebarView: View {
-    let model: SidebarModel
+    @Bindable var model: SidebarModel
     /// The location shown in the browser, highlighted when it matches a row.
     let location: URL
     let onSelect: (URL) -> Void
     /// Files were dropped on a row: the folder it stands for, the files, and whether to move them.
     let onDrop: (URL, [URL], Bool) -> Void
+    /// The user asked to eject a volume.
+    let onEject: (Volume) -> Void
 
     var body: some View {
         List(selection: selection) {
@@ -50,16 +52,58 @@ struct SidebarView: View {
                     .tag(location.url)
                 }
                 ForEach(model.volumes) { volume in
-                    SidebarRow(name: volume.name, systemImage: "internaldrive") { urls, move in
-                        onDrop(volume.url, urls, move)
+                    HStack(spacing: 4) {
+                        SidebarRow(
+                            name: volume.name, systemImage: volume.isEjectable ? "externaldrive" : "internaldrive"
+                        ) { urls, move in
+                            onDrop(volume.url, urls, move)
+                        }
+                        if volume.isEjectable {
+                            Button {
+                                onEject(volume)
+                            } label: {
+                                Label {
+                                    Text("Eject \(volume.name)", bundle: .module)
+                                } icon: {
+                                    Image(systemName: "eject.fill")
+                                }
+                                .labelStyle(.iconOnly)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.secondary)
+                        }
                     }
                     .tag(volume.url.canonicalLocation)
+                    .contextMenu {
+                        if volume.isEjectable {
+                            Button {
+                                onEject(volume)
+                            } label: {
+                                Text("Eject", bundle: .module)
+                            }
+                        }
+                    }
                 }
             } header: {
                 Text("Locations", bundle: .module)
             }
         }
         .listStyle(.sidebar)
+        .alert(
+            Text("The volume couldn’t be ejected.", bundle: .module),
+            isPresented: Binding(
+                get: { model.alertMessage != nil },
+                set: { if !$0 { model.alertMessage = nil } }
+            )
+        ) {
+            Button {
+                model.alertMessage = nil
+            } label: {
+                Text("OK", bundle: .module)
+            }
+        } message: {
+            Text(verbatim: model.alertMessage ?? "")
+        }
     }
 
     private var selection: Binding<URL?> {
