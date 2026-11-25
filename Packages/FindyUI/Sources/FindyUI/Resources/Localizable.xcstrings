@@ -731,6 +731,16 @@
         }
       }
     },
+    "Quick Look" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coup d’œil"
+          }
+        }
+      }
+    },
     "Redo" : {
       "localizations" : {
         "fr" : {

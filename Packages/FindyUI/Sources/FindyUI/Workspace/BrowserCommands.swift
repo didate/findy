@@ -47,6 +47,15 @@ public struct BrowserCommands: Commands {
             .disabled(workspace == nil)
 
             Button {
+                // The list that has the focus answers: the preview panel belongs to the view.
+                NSApp.sendAction(#selector(FileTableView.toggleQuickLook(_:)), to: nil, from: nil)
+            } label: {
+                Text("Quick Look", bundle: .module)
+            }
+            .keyboardShortcut("y", modifiers: .command)
+            .disabled(workspace == nil)
+
+            Button {
                 workspace?.activePane.openTerminal()
             } label: {
                 Text("Open in Terminal", bundle: .module)

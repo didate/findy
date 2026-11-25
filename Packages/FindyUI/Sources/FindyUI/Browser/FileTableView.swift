@@ -1,4 +1,5 @@
 import AppKit
+import Quartz
 
 /// What the table asks of its owner when the user acts with the keyboard.
 @MainActor
@@ -11,6 +12,10 @@ protocol FileTableViewActions: AnyObject {
     /// Returns `false` when there was no filter, so the key keeps its usual meaning.
     func tableViewClearFilter() -> Bool
     func tableViewBeginRename()
+    /// True while the user is typing a filter: the space bar is then a character like any other.
+    var tableViewIsFiltering: Bool { get }
+    /// The files Quick Look shows: the selection, in the order of the list.
+    var tableViewPreviewURLs: [URL] { get }
     func tableViewContextMenu() -> NSMenu?
     var tableViewCanCopy: Bool { get }
     var tableViewCanPaste: Bool { get }
@@ -29,6 +34,7 @@ final class FileTableView: NSTableView {
         static let `return`: UInt16 = 36
         static let enter: UInt16 = 76
         static let tab: UInt16 = 48
+        static let space: UInt16 = 49
     }
 
     // MARK: Clipboard
@@ -96,6 +102,14 @@ final class FileTableView: NSTableView {
         case KeyCode.return, KeyCode.enter:
             actions.tableViewBeginRename()
             return
+        case KeyCode.space:
+            // Space opens Quick Look, as in Finder, unless a filter is being typed ("my file").
+            if actions.tableViewIsFiltering {
+                actions.tableViewAppendToFilter(" ")
+            } else {
+                toggleQuickLook(nil)
+            }
+            return
         default:
             if let text = event.characters, Self.isFilterText(text) {
                 actions.tableViewAppendToFilter(text)
@@ -106,11 +120,73 @@ final class FileTableView: NSTableView {
     }
 
     /// Printable text only: no control characters, no arrow or function keys (private-use scalars),
-    /// and no leading space, which is reserved for Quick Look.
+    /// and no space, which `keyDown` handles: it opens Quick Look or extends a filter.
     private static func isFilterText(_ text: String) -> Bool {
         guard !text.isEmpty, text != " " else { return false }
         return text.unicodeScalars.allSatisfy { scalar in
             !CharacterSet.controlCharacters.contains(scalar) && !(0xF700...0xF8FF).contains(scalar.value)
         }
+    }
+
+    // MARK: Quick Look
+
+    /// Shows or hides the system preview panel for the selection. Also the File menu's action.
+    @objc func toggleQuickLook(_ sender: Any?) {
+        guard let panel = QLPreviewPanel.shared() else { return }
+        if panel.isVisible {
+            panel.orderOut(nil)
+        } else if actions?.tableViewPreviewURLs.isEmpty == false {
+            panel.makeKeyAndOrderFront(nil)
+        }
+    }
+
+    /// Makes an open preview follow the selection.
+    func selectionDidChangeForQuickLook() {
+        guard QLPreviewPanel.sharedPreviewPanelExists(), let panel = QLPreviewPanel.shared(), panel.isVisible,
+            panel.dataSource === self
+        else { return }
+        panel.reloadData()
+    }
+
+    // The panel looks along the responder chain for someone to feed it. The list does, while it
+    // has the focus.
+
+    override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool {
+        true
+    }
+
+    // AppKit declares these two without an actor, yet only ever calls them on the main thread.
+
+    override func beginPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        MainActor.assumeIsolated {
+            panel?.dataSource = self
+            panel?.delegate = self
+        }
+    }
+
+    override func endPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        MainActor.assumeIsolated {
+            panel?.dataSource = nil
+            panel?.delegate = nil
+        }
+    }
+}
+
+extension FileTableView: @preconcurrency QLPreviewPanelDataSource, @preconcurrency QLPreviewPanelDelegate {
+    func numberOfPreviewItems(in panel: QLPreviewPanel!) -> Int {
+        actions?.tableViewPreviewURLs.count ?? 0
+    }
+
+    func previewPanel(_ panel: QLPreviewPanel!, previewItemAt index: Int) -> (any QLPreviewItem)! {
+        guard let urls = actions?.tableViewPreviewURLs, urls.indices.contains(index) else { return nil }
+        return urls[index] as NSURL
+    }
+
+    /// The panel has the keyboard while it is open. Arrows and the like are handed back to the
+    /// list, so the selection moves and the preview follows.
+    func previewPanel(_ panel: QLPreviewPanel!, handle event: NSEvent!) -> Bool {
+        guard let event, event.type == .keyDown, event.keyCode != KeyCode.space else { return false }
+        keyDown(with: event)
+        return true
     }
 }

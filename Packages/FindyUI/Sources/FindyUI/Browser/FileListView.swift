@@ -271,6 +271,7 @@ struct FileListView: NSViewRepresentable {
         func tableViewSelectionDidChange(_ notification: Notification) {
             guard !isApplying, let tableView else { return }
             model.selection = selectedURLs(in: tableView)
+            self.tableView?.selectionDidChangeForQuickLook()
         }
 
         @objc func openClickedRow(_ sender: NSTableView) {
@@ -375,6 +376,10 @@ struct FileListView: NSViewRepresentable {
         func tableViewClearFilter() -> Bool {
             model.clearFilter()
         }
+
+        var tableViewIsFiltering: Bool { !model.filterText.isEmpty }
+
+        var tableViewPreviewURLs: [URL] { model.selectedItems.map(\.url) }
 
         func tableViewBeginRename() {
             model.beginRenamingSelection()

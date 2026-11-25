@@ -35,6 +35,7 @@
 - [x] Open in Editor (⌥⌘E): the selection, or the current folder as a project, in the code editor chosen in Settings
 - [x] Git changes in the status bar: files changed, commits to push and to pull
 - [x] Git state of each entry in the list: modified, added, renamed, untracked, in conflict; folders holding changes are flagged and ignored entries are dimmed
+- [x] Quick Look on the space bar (⌘Y), following the selection
 
 ## Next
 
@@ -50,7 +51,6 @@
 
 - Copy queue with pause, resume and conflict handling
 - Batch rename with regex and preview
-- Built-in Quick Look
 - Spotlight search scoped to the current folder
 - Browse archives without extracting them
 - Icon and column views
