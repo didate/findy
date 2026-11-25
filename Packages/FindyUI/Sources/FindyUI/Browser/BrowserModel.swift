@@ -101,6 +101,7 @@ public final class BrowserModel: Identifiable {
 
     let fileSystem: any FileSystemProviding
     let operations: any FileOperating
+    let iconProvider: any IconProviding
     private let settingsStore: (any FolderSettingsStoring)?
     /// The folder whose saved settings are currently applied.
     private var settingsLocation: URL?
@@ -148,6 +149,7 @@ public final class BrowserModel: Identifiable {
         operations: any FileOperating = LocalFileOperations(),
         history: UndoHistory = UndoHistory(),
         settingsStore: (any FolderSettingsStoring)? = nil,
+        iconProvider: any IconProviding = QuickLookIconProvider(),
         calculatesFolderSizes: Bool = true,
         openFiles: @escaping @MainActor ([URL]) -> Void = { urls in
             for url in urls { NSWorkspace.shared.open(url) }
@@ -158,6 +160,7 @@ public final class BrowserModel: Identifiable {
         self.operations = operations
         self.history = history
         self.settingsStore = settingsStore
+        self.iconProvider = iconProvider
         self.calculatesFolderSizes = calculatesFolderSizes
         self.openFiles = openFiles
     }

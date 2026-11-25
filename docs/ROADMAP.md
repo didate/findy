@@ -19,12 +19,12 @@
 - [x] Symbolic links to folders open like folders
 - [x] App icon
 - [x] Drag and drop in the list, between panes and with other apps
+- [x] Real icons (apps, custom folders, previews of images and documents), loaded in the background
 - [x] Progress of a copy or a move, with a Stop button that works in the middle of a file
 
 ## Before releasing v0.1
 
 - [ ] Drop on the sidebar, on the path bar and on tabs
-- [ ] File icons of the files themselves (app icons, thumbnails), loaded off the main thread
 - [ ] Keep the main thread free when the user re-sorts a very large folder (76 ms for 10,000 files today)
 - [ ] An option to choose whether folders come first
 - [ ] Use the current settings as the default for folders never customized

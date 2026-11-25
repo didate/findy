@@ -9,7 +9,7 @@ A free, open-source, native file manager for macOS. It runs alongside Finder and
 - Sidebar, tabs (⌘T) and an optional second pane (⇧⌘D)
 - Path bar you can click or type in (⌘L)
 - Type in the list to filter the current folder instantly
-- Folder sizes, computed in the background
+- Folder sizes and real file icons, computed in the background
 - Sort order and hidden files remembered per folder, without `.DS_Store` files
 - Cut, copy, paste, rename, new folder, move to Trash
 - Drag and drop that is predictable: a drag moves, Option-drag copies, on any volume

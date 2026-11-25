@@ -119,7 +119,14 @@ struct FileListView: NSViewRepresentable {
         /// The entry whose name is being edited in place, and its text field.
         private var editing: (url: URL, field: NSTextField)?
 
+        /// Generic icons, by file extension. Shown at once, before the real icon is known.
         private var iconCache: [String: NSImage] = [:]
+        /// Real icons already loaded, by path and modification date.
+        private var loadedIcons: [String: NSImage] = [:]
+        /// Icons being loaded for rows on screen, by row location.
+        private var iconTasks: [URL: Task<Void, Never>] = [:]
+        private static let iconPointSize: CGFloat = 18
+        private static let loadedIconsLimit = 4_000
         private let dateFormatter: DateFormatter = {
             let formatter = DateFormatter()
             formatter.dateStyle = .medium
@@ -165,6 +172,7 @@ struct FileListView: NSViewRepresentable {
 
             let locationChanged = location != newLocation
             location = newLocation
+            if locationChanged { cancelIconLoading() }
             if items != newItems {
                 items = newItems
                 tableView.reloadData()
@@ -211,7 +219,14 @@ struct FileListView: NSViewRepresentable {
             switch column {
             case .name:
                 cell.textField?.stringValue = item.name
-                cell.imageView?.image = icon(for: item)
+                // Remembered so the row can tell which icon to stop loading when it scrolls away.
+                cell.objectValue = item.url as NSURL
+                if let loaded = loadedIcons[Self.iconKey(for: item)] {
+                    cell.imageView?.image = loaded
+                } else {
+                    cell.imageView?.image = icon(for: item)
+                    loadIcon(for: item, in: tableView)
+                }
                 // Hidden entries are dimmed, as in Finder.
                 cell.textField?.textColor = item.isHidden ? .secondaryLabelColor : .labelColor
                 cell.imageView?.alphaValue = item.isHidden ? 0.5 : 1
@@ -223,6 +238,13 @@ struct FileListView: NSViewRepresentable {
                 cell.textField?.stringValue = size.map(sizeFormatter.string(fromByteCount:)) ?? "—"
             }
             return cell
+        }
+
+        func tableView(_ tableView: NSTableView, didRemove rowView: NSTableRowView, forRow row: Int) {
+            // The row left the screen: its icon is no longer worth computing.
+            guard let cell = rowView.view(atColumn: 0) as? NSTableCellView, let url = cell.objectValue as? URL
+            else { return }
+            iconTasks.removeValue(forKey: url)?.cancel()
         }
 
         func tableView(_ tableView: NSTableView, sortDescriptorsDidChange oldDescriptors: [NSSortDescriptor]) {
@@ -501,7 +523,47 @@ struct FileListView: NSViewRepresentable {
             return cell
         }
 
-        /// Icons come from the file's type, not from the file itself, so no row costs a disk access.
+        // MARK: Icons
+
+        private static func iconKey(for item: FileItem) -> String {
+            "\(item.url.path)|\(item.modificationDate?.timeIntervalSinceReferenceDate ?? 0)"
+        }
+
+        /// Loads the item's real icon in the background and puts it in its row if still on screen.
+        private func loadIcon(for item: FileItem, in tableView: NSTableView) {
+            let url = item.url
+            guard iconTasks[url] == nil else { return }
+            let key = Self.iconKey(for: item)
+            let provider = model.iconProvider
+            let scale = tableView.window?.backingScaleFactor ?? 2
+            iconTasks[url] = Task { [weak self, weak tableView] in
+                let image = await provider.icon(for: url, pointSize: Self.iconPointSize, scale: scale)
+                // A cancelled task was already removed from `iconTasks` by whoever cancelled it.
+                guard let self, !Task.isCancelled else { return }
+                iconTasks[url] = nil
+                guard let image else { return }
+                // Previews are not always square: keep their proportions within the icon's box.
+                let longestSide = CGFloat(max(image.width, image.height, 1))
+                let size = NSSize(
+                    width: Self.iconPointSize * CGFloat(image.width) / longestSide,
+                    height: Self.iconPointSize * CGFloat(image.height) / longestSide)
+                let icon = NSImage(cgImage: image, size: size)
+                if loadedIcons.count >= Self.loadedIconsLimit { loadedIcons.removeAll() }
+                loadedIcons[key] = icon
+                guard let tableView, let row = items.firstIndex(where: { $0.url == url }),
+                    let cell = tableView.view(atColumn: 0, row: row, makeIfNecessary: false) as? NSTableCellView
+                else { return }
+                cell.imageView?.image = icon
+            }
+        }
+
+        private func cancelIconLoading() {
+            for task in iconTasks.values { task.cancel() }
+            iconTasks.removeAll()
+        }
+
+        /// The generic icon of the file's type. It costs no disk access, so every row has a
+        /// picture at once; the real icon replaces it when it arrives.
         private func icon(for item: FileItem) -> NSImage {
             let key = item.isFolder ? "/folder" : item.url.pathExtension.lowercased()
             if let cached = iconCache[key] { return cached }
