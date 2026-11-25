@@ -2,7 +2,7 @@
 
 A free, open-source, native file manager for macOS. It runs alongside Finder and focuses on speed and reliability.
 
-> Early development (v0.1 in progress). The features below work; drag and drop is not there yet.
+> Early development (v0.1 in progress). The features below work.
 
 ## Features
 
@@ -12,6 +12,7 @@ A free, open-source, native file manager for macOS. It runs alongside Finder and
 - Folder sizes, computed in the background
 - Sort order and hidden files remembered per folder, without `.DS_Store` files
 - Cut, copy, paste, rename, new folder, move to Trash
+- Drag and drop that is predictable: a drag moves, Option-drag copies, on any volume
 - Nothing is overwritten silently: Keep Both, Replace or Skip
 - Undo and redo for every file operation
 - The list follows changes on disk

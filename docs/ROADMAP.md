@@ -18,10 +18,11 @@
 - [x] Live updates with FSEvents
 - [x] Symbolic links to folders open like folders
 - [x] App icon
+- [x] Drag and drop in the list, between panes and with other apps
 
 ## Before releasing v0.1
 
-- [ ] Drag and drop, inside Findy and with other apps
+- [ ] Drop on the sidebar, on the path bar and on tabs
 - [ ] Cancel a copy or a move while it runs, with progress
 - [ ] File icons of the files themselves (app icons, thumbnails), loaded off the main thread
 - [ ] Keep the main thread free when the user re-sorts a very large folder (76 ms for 10,000 files today)

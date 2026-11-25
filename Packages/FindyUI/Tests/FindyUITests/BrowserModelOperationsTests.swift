@@ -296,6 +296,48 @@ import Testing
         }
     }
 
+    // MARK: Drops
+
+    @Test func aDropCanTargetAFolderOtherThanTheOneShown() async throws {
+        try await withTransferSetup { model, source, destination in
+            let inner = destination.appendingPathComponent("Inner", isDirectory: true)
+            try fileManager.createDirectory(at: inner, withIntermediateDirectories: false)
+
+            model.transfer([source.appendingPathComponent("one.txt")], move: true, into: inner)
+            await settle(model)
+
+            #expect(names(in: inner) == ["one.txt"])
+            #expect(names(in: destination) == ["Inner"])
+            #expect(names(in: source) == ["two.txt"])
+            // The moved file is not in the folder shown, so nothing gets selected.
+            #expect(model.selection.isEmpty)
+
+            model.undo()
+            await settle(model)
+            #expect(names(in: inner).isEmpty)
+            #expect(names(in: source) == ["one.txt", "two.txt"])
+        }
+    }
+
+    @Test func refusesDropsThatWouldDoNothingOrLoop() async throws {
+        try await withTransferSetup { model, source, destination in
+            let file = source.appendingPathComponent("one.txt")
+            let inner = source.appendingPathComponent("Inner", isDirectory: true)
+
+            #expect(model.canAccept([file], in: destination, move: true))
+            #expect(model.canAccept([file], in: destination, move: false))
+            // Moving a file to the folder it is already in does nothing; copying duplicates it.
+            #expect(!model.canAccept([file], in: source, move: true))
+            #expect(model.canAccept([file], in: source, move: false))
+            // A folder cannot go into itself or below itself.
+            #expect(!model.canAccept([source], in: source, move: false))
+            #expect(!model.canAccept([source], in: inner, move: true))
+            // A folder whose name merely starts the same is a different folder.
+            #expect(model.canAccept([source], in: URL(fileURLWithPath: source.path + "-2"), move: true))
+            #expect(!model.canAccept([], in: destination, move: true))
+        }
+    }
+
     @Test func renamingNeedsExactlyOneSelectedEntry() async throws {
         try await withModel { model, directory in
             try Data().write(to: directory.appendingPathComponent("a.txt"))

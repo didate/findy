@@ -18,11 +18,24 @@ extension BrowserModel {
         transfer(urls, move: isCut)
     }
 
-    /// Copies or moves `urls` into this pane's folder. If some names are already taken, nothing
-    /// happens yet: `pendingTransfer` is set and the user decides with `resolveTransfer`.
-    public func transfer(_ urls: [URL], move: Bool) {
+    /// Whether dropping `urls` into `directory` would do something. A folder cannot go into itself
+    /// or one of its subfolders, and moving files to the folder they are already in is a no-op.
+    public func canAccept(_ urls: [URL], in directory: URL, move: Bool) -> Bool {
+        guard !urls.isEmpty else { return false }
+        let target = directory.standardizedFileURL.path
+        for url in urls {
+            let path = url.standardizedFileURL.path
+            if target == path || target.hasPrefix(path + "/") { return false }
+        }
+        return !move || urls.contains { !Self.isInside($0, directory: directory) }
+    }
+
+    /// Copies or moves `urls` into `directory`, this pane's folder by default. If some names are
+    /// already taken, nothing happens yet: `pendingTransfer` is set and the user decides with
+    /// `resolveTransfer`.
+    public func transfer(_ urls: [URL], move: Bool, into directory: URL? = nil) {
         guard !urls.isEmpty else { return }
-        let directory = location
+        let directory = directory ?? location
         start {
             var conflicts: [URL] = []
             for url in urls where !Self.isInside(url, directory: directory) {

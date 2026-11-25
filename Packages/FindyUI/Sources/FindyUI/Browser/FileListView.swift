@@ -31,6 +31,11 @@ struct FileListView: NSViewRepresentable {
         tableView.columnAutoresizingStyle = .firstColumnOnlyAutoresizingStyle
         tableView.rowHeight = 24
         tableView.setAccessibilityLabel(String(localized: "Files", bundle: .module))
+        // Files can be dragged out to any app and dropped in from any app.
+        tableView.registerForDraggedTypes([.fileURL])
+        tableView.setDraggingSourceOperationMask([.move, .copy], forLocal: true)
+        tableView.setDraggingSourceOperationMask([.move, .copy], forLocal: false)
+        tableView.draggingDestinationFeedbackStyle = .regular
 
         for column in Column.allCases {
             tableView.addTableColumn(column.makeTableColumn())
@@ -237,6 +242,73 @@ struct FileListView: NSViewRepresentable {
             let row = sender.clickedRow
             guard items.indices.contains(row) else { return }
             model.open(items[row])
+        }
+
+        // MARK: Drag and drop
+
+        func tableView(_ tableView: NSTableView, pasteboardWriterForRow row: Int) -> (any NSPasteboardWriting)? {
+            // No drag while a name is being edited: the drag would start from the text field.
+            guard editing == nil, items.indices.contains(row) else { return nil }
+            return items[row].url as NSURL
+        }
+
+        func tableView(
+            _ tableView: NSTableView, validateDrop info: any NSDraggingInfo, proposedRow row: Int,
+            proposedDropOperation dropOperation: NSTableView.DropOperation
+        ) -> NSDragOperation {
+            let destination = dropDestination(in: tableView, row: row, dropOperation: dropOperation)
+            let operation = Self.operation(for: info)
+            guard operation != [],
+                model.canAccept(Self.fileURLs(in: info), in: destination, move: operation == .move)
+            else { return [] }
+            return operation
+        }
+
+        func tableView(
+            _ tableView: NSTableView, acceptDrop info: any NSDraggingInfo, row: Int,
+            dropOperation: NSTableView.DropOperation
+        ) -> Bool {
+            let destination = dropDestination(in: tableView, row: row, dropOperation: dropOperation)
+            let operation = Self.operation(for: info)
+            let urls = Self.fileURLs(in: info)
+            guard operation != [], model.canAccept(urls, in: destination, move: operation == .move) else {
+                return false
+            }
+            parent.onActivate()
+            model.transfer(urls, move: operation == .move, into: destination)
+            return true
+        }
+
+        /// A drop on a folder row goes into that folder. Anywhere else it goes into the folder
+        /// shown, and the whole list is highlighted instead of a gap between two rows.
+        private func dropDestination(
+            in tableView: NSTableView, row: Int, dropOperation: NSTableView.DropOperation
+        ) -> URL {
+            if dropOperation == .on, items.indices.contains(row), items[row].isFolder {
+                return items[row].url
+            }
+            tableView.setDropRow(-1, dropOperation: .on)
+            return model.location
+        }
+
+        /// A drag moves, and Option-drag copies, whatever the volumes involved. (Finder moves or
+        /// copies depending on whether source and destination share a volume.) A source that only
+        /// offers copies is copied.
+        private static func operation(for info: any NSDraggingInfo) -> NSDragOperation {
+            let mask = info.draggingSourceOperationMask
+            // AppKit is documented to narrow the mask to `.copy` while Option is held. The key is
+            // also read directly, so the rule does not depend on every source app honoring that.
+            let optionHeld = NSEvent.modifierFlags.contains(.option)
+            if optionHeld, mask.contains(.copy) { return .copy }
+            if mask.contains(.move) { return .move }
+            if mask.contains(.copy) { return .copy }
+            return []
+        }
+
+        private static func fileURLs(in info: any NSDraggingInfo) -> [URL] {
+            let objects = info.draggingPasteboard.readObjects(
+                forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true])
+            return objects as? [URL] ?? []
         }
 
         // MARK: FileTableViewActions
