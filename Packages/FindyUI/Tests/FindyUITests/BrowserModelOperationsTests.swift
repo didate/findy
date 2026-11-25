@@ -18,6 +18,9 @@ private struct StallingOperations: FileOperating {
     }
 
     func totalSize(of urls: [URL]) async -> Int64 { 40 }
+    func createFile(in directory: URL, named name: String) async throws -> URL {
+        try await real.createFile(in: directory, named: name)
+    }
     func createFolder(in directory: URL, named name: String) async throws -> URL {
         try await real.createFolder(in: directory, named: name)
     }
@@ -83,6 +86,25 @@ private struct StallingOperations: FileOperating {
             model.redo()
             await settle(model)
             #expect(names(in: directory) == ["untitled folder"])
+        }
+    }
+
+    @Test func createsAFileSelectsItAndStartsRenaming() async throws {
+        try await withModel { model, directory in
+            model.newFile()
+            await settle(model)
+            model.cancelRename()
+            model.newFile()
+            await settle(model)
+
+            #expect(names(in: directory) == ["untitled 2.txt", "untitled.txt"])
+            #expect(model.selectedItems.map(\.name) == ["untitled 2.txt"])
+            #expect(model.renamingURL?.lastPathComponent == "untitled 2.txt")
+
+            // Undo sends the last new file to the Trash.
+            model.undo()
+            await settle(model)
+            #expect(names(in: directory) == ["untitled.txt"])
         }
     }
 

@@ -21,6 +21,22 @@ extension BrowserModel {
         }
     }
 
+    /// Creates an empty file here, selects it and starts renaming it.
+    public func newFile() {
+        let directory = location
+        start {
+            do {
+                let name = String(localized: "untitled.txt", bundle: .module)
+                let file = try await self.operations.createFile(in: directory, named: name)
+                self.history.record(self.actions.trash([file], name: ActionName.newFile))
+                self.renameAfterLoad = file.lastPathComponent
+                self.finish(selecting: [file])
+            } catch {
+                self.report(error)
+            }
+        }
+    }
+
     /// Starts renaming the selected entry in the list. Does nothing unless exactly one is selected.
     public func beginRenamingSelection() {
         guard selection.count == 1, let url = selection.first else { return }

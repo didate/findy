@@ -46,6 +46,36 @@ import Testing
         }
     }
 
+    @Test func createsAnEmptyFileAndNeverTouchesAnExistingOne() async throws {
+        try await withScratchDirectory { directory in
+            try write("precious", to: directory.appendingPathComponent("untitled.txt"))
+
+            let first = try await operations.createFile(in: directory, named: "untitled.txt")
+            let second = try await operations.createFile(in: directory, named: "untitled.txt")
+            let emoji = try await operations.createFile(in: directory, named: "été 🚀.md")
+
+            #expect(first.lastPathComponent == "untitled 2.txt")
+            #expect(second.lastPathComponent == "untitled 3.txt")
+            #expect(emoji.lastPathComponent == "été 🚀.md")
+            #expect(try read(first).isEmpty)
+            #expect(try read(directory.appendingPathComponent("untitled.txt")) == "precious")
+        }
+    }
+
+    @Test func refusesToCreateAFileWhereItMayNotOrWithABadName() async throws {
+        let forbidden = URL(fileURLWithPath: "/System/findy-test-\(UUID().uuidString)")
+        await #expect(throws: (any Error).self) {
+            try await operations.createFile(in: forbidden, named: "x.txt")
+        }
+        try await withScratchDirectory { directory in
+            await #expect(throws: (any Error).self) {
+                try await operations.createFile(in: directory, named: "a/b.txt")
+            }
+            let left = try names(in: directory)
+            #expect(left.isEmpty)
+        }
+    }
+
     @Test func refusesToCreateAFolderWhereItMayNot() async throws {
         let directory = URL(fileURLWithPath: "/System/findy-test-\(UUID().uuidString)")
         await #expect(throws: (any Error).self) {

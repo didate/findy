@@ -8,6 +8,10 @@ public protocol FileOperating: Sendable {
     /// Creates a folder in `directory`. If `name` is taken, a free variant is used. Returns the folder.
     func createFolder(in directory: URL, named name: String) async throws -> URL
 
+    /// Creates an empty file in `directory`. If `name` is taken, a free variant is used and the
+    /// existing file is left alone. Returns the file.
+    func createFile(in directory: URL, named name: String) async throws -> URL
+
     /// Renames an item in place. Returns its new location.
     func rename(_ url: URL, to newName: String) async throws -> URL
 

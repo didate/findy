@@ -36,6 +36,7 @@
 - [x] Git changes in the status bar: files changed, commits to push and to pull
 - [x] Git state of each entry in the list: modified, added, renamed, untracked, in conflict; folders holding changes are flagged and ignored entries are dimmed
 - [x] Quick Look on the space bar (⌘Y), following the selection
+- [x] New File (⌥⌘N): an empty file, named on the spot
 
 ## Next
 

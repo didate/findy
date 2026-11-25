@@ -21,6 +21,15 @@ public struct LocalFileOperations: FileOperating {
         return url
     }
 
+    public func createFile(in directory: URL, named name: String) async throws -> URL {
+        try Self.validate(name)
+        let url = Self.freeURL(for: name, in: directory, keepingExtension: true)
+        // `withoutOverwriting`: if another program takes the name in the meantime, this fails
+        // instead of emptying that program's file.
+        try Data().write(to: url, options: .withoutOverwriting)
+        return url
+    }
+
     public func rename(_ url: URL, to newName: String) async throws -> URL {
         try Self.validate(newName)
         let destination = url.deletingLastPathComponent().appendingPathComponent(newName)

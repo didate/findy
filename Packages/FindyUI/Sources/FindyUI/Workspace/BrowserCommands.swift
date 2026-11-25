@@ -36,6 +36,14 @@ public struct BrowserCommands: Commands {
             .keyboardShortcut("n", modifiers: [.command, .shift])
             .disabled(workspace == nil)
 
+            Button {
+                workspace?.activePane.newFile()
+            } label: {
+                Text("New File", bundle: .module)
+            }
+            .keyboardShortcut("n", modifiers: [.command, .option])
+            .disabled(workspace == nil)
+
             Divider()
 
             Button {

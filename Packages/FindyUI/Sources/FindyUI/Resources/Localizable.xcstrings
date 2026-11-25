@@ -621,6 +621,16 @@
         }
       }
     },
+    "New File" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouveau fichier"
+          }
+        }
+      }
+    },
     "New Folder" : {
       "localizations" : {
         "fr" : {
@@ -937,6 +947,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "dossier sans titre"
+          }
+        }
+      }
+    },
+    "untitled.txt" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sans titre.txt"
           }
         }
       }

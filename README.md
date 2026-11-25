@@ -11,7 +11,7 @@ A free, open-source, native file manager for macOS. It runs alongside Finder and
 - Type in the list to filter the current folder instantly
 - Folder sizes and real file icons, computed in the background
 - Sort order and hidden files remembered per folder, without `.DS_Store` files
-- Cut, copy, paste, rename, new folder, move to Trash
+- Cut, copy, paste, rename, new folder, new file, move to Trash
 - Drag and drop that is predictable: a drag moves, Option-drag copies, on any volume
 - Nothing is overwritten silently: Keep Both, Replace or Skip
 - A copy shows its progress and can be stopped at any point, leaving nothing half-written
