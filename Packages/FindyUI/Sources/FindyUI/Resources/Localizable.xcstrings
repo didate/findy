@@ -281,6 +281,16 @@
         }
       }
     },
+    "New Tab" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouvel onglet"
+          }
+        }
+      }
+    },
     "No Matches" : {
       "localizations" : {
         "fr" : {

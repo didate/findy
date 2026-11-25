@@ -4,7 +4,7 @@ import SwiftUI
 @main
 struct FindyApp: App {
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: BrowserWindow.sceneID) {
             BrowserView(location: Self.launchLocation)
                 .frame(minWidth: 640, minHeight: 360)
         }

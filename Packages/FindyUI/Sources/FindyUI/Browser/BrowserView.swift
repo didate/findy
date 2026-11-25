@@ -6,9 +6,10 @@ public struct BrowserView: View {
     @State private var sidebar = SidebarModel()
 
     /// - Parameter location: the folder to show first; the home folder when `nil`.
+    ///   A window opened by New Tab shows the folder that command asked for instead.
     public init(location: URL? = nil) {
-        _workspace = State(
-            initialValue: WorkspaceModel(location: location ?? FileManager.default.homeDirectoryForCurrentUser))
+        let start = BrowserWindow.pendingLocation ?? location ?? FileManager.default.homeDirectoryForCurrentUser
+        _workspace = State(initialValue: WorkspaceModel(location: start))
     }
 
     public var body: some View {
@@ -26,6 +27,7 @@ public struct BrowserView: View {
             .navigationTitle(workspace.activePane.title)
             .toolbar { toolbar }
         }
+        .background(WindowAccessor { BrowserWindow.windowDidAppear($0) })
         .focusedSceneValue(\.workspace, workspace)
         .task { await sidebar.loadVolumes() }
     }

@@ -4,6 +4,7 @@ import SwiftUI
 /// The menu bar commands of a browser window. They act on the active pane of the key window.
 public struct BrowserCommands: Commands {
     @FocusedValue(\.workspace) private var workspace
+    @Environment(\.openWindow) private var openWindow
 
     public init() {}
 
@@ -14,6 +15,14 @@ public struct BrowserCommands: Commands {
 
     public var body: some Commands {
         CommandGroup(after: .newItem) {
+            Button {
+                // A new tab starts in the folder the user is looking at.
+                BrowserWindow.openTab(at: workspace?.activePane.location, with: openWindow)
+            } label: {
+                Text("New Tab", bundle: .module)
+            }
+            .keyboardShortcut("t", modifiers: .command)
+
             Button {
                 workspace?.activePane.newFolder()
             } label: {
