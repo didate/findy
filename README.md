@@ -2,7 +2,7 @@
 
 A free, open-source, native file manager for macOS. It runs alongside Finder and focuses on speed and reliability.
 
-> Early development (v0.1 in progress). The features below work.
+> Early development (v0.2). The features below work.
 
 ## Features
 

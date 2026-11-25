@@ -26,9 +26,9 @@ scripts/release.sh
 ## 3. Publish
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
-gh release create v0.1.0 build/release/Findy-0.1.0.dmg --title "Findy 0.1.0" --notes-file <notes>
+git tag v<version>
+git push origin v<version>
+gh release create v<version> build/release/Findy-<version>.dmg --title "Findy <version>" --notes-file <notes>
 ```
 
 Upload the exact image whose SHA-256 goes in the cask: two builds of the same sources do not produce the same bytes.

@@ -26,7 +26,7 @@
 - [x] v0.1.0 published on GitHub, installable with `brew install --cask didate/tap/findy`
 - [x] Progress of a copy or a move, with a Stop button that works in the middle of a file
 
-## v0.2 (in progress)
+## v0.2
 
 - [x] Your own favorites in the sidebar: add a folder (File > Add to Sidebar, ⌃⌘T, or drop it between two favorites), remove it, reorder by dragging
 - [x] Cloud storage folders under Locations (iCloud Drive, Google Drive and the other File Provider services)
@@ -42,6 +42,7 @@
 - [x] Cut files are dimmed until they are pasted
 - [x] Re-sorting a folder of more than 2,000 entries no longer holds the main thread (76 ms before for 10,000 files, a few microseconds now)
 - [x] View > Group by Date: sections like Finder's (Today, Yesterday, Previous 7 Days…), remembered per folder
+- [x] v0.2.0 published on GitHub and in the Homebrew tap
 
 ## Next
 
