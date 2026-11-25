@@ -56,7 +56,7 @@ struct PaneView: View {
         .simultaneousGesture(TapGesture().onEnded { onActivate() })
         // Restarted on every navigation, cancelled when the pane goes away.
         .task(id: model.location) { await model.followChanges() }
-        .task(id: model.gitInfo?.gitDirectory) { await model.followGitChanges() }
+        .task(id: model.gitInfo?.root) { await model.followGitChanges() }
     }
 
     @ViewBuilder private var content: some View {

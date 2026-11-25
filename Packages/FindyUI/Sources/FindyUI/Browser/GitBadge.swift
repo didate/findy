@@ -23,7 +23,7 @@ struct GitBadge {
         case .untracked:
             self.init(text: "U", color: .systemGreen, label: String(localized: "Untracked", bundle: .module))
         case .containsChanges:
-            self.init(text: "•", color: .systemOrange, label: String(localized: "Contains changes", bundle: .module))
+            self.init(text: "●", color: .systemOrange, label: String(localized: "Contains changes", bundle: .module))
         case .ignored, .deleted:
             return nil
         }

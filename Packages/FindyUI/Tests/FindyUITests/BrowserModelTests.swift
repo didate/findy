@@ -26,6 +26,8 @@ private struct FakeFileSystem: FileSystemProviding {
         AsyncStream { $0.finish() }
     }
 
+    func changes(under root: URL) -> AsyncStream<Void> { AsyncStream { $0.finish() } }
+
     func mountedVolumes() async -> [Volume] { [] }
 
     func cloudLocations() async -> [Volume] { [] }

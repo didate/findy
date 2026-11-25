@@ -11,6 +11,8 @@ private struct FakeLocations: FileSystemProviding {
     func contents(of directory: URL) async throws -> [FileItem] { [] }
     func directorySize(of directory: URL) async throws -> Int64 { 0 }
     func changes(in directory: URL) -> AsyncStream<Void> { AsyncStream { $0.finish() } }
+    func changes(under root: URL) -> AsyncStream<Void> { AsyncStream { $0.finish() } }
+
     func mountedVolumes() async -> [Volume] { [Volume(url: URL(fileURLWithPath: "/"), name: "Macintosh HD")] }
     func cloudLocations() async -> [Volume] { cloud }
     func gitInfo(for directory: URL) async -> GitInfo? { nil }

@@ -1,21 +1,24 @@
 import CoreServices
 import Foundation
 
-/// Reports changes to a directory and its direct children, using FSEvents.
+/// Reports changes to a directory, using FSEvents: to its direct children, or to its whole tree.
 enum DirectoryWatcher {
     /// A stream that yields each time something is added to, removed from, renamed in or modified
     /// directly inside `directory`, or when `directory` itself moves or disappears.
     ///
-    /// Changes deeper in the tree are ignored. Bursts are coalesced: a slow consumer gets one pending
-    /// element, not a backlog. The watch stops when the consumer stops iterating.
-    static func changes(in directory: URL, latency: TimeInterval = 0.2) -> AsyncStream<Void> {
+    /// Changes deeper in the tree are ignored unless `recursive` is set. Bursts are coalesced: a
+    /// slow consumer gets one pending element, not a backlog. The watch stops when the consumer
+    /// stops iterating.
+    static func changes(
+        in directory: URL, recursive: Bool = false, latency: TimeInterval = 0.2
+    ) -> AsyncStream<Void> {
         AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
             // FSEvents reports resolved paths (`/private/tmp/x`, never `/tmp/x`).
             guard let watchedPath = realPath(of: directory.path) else {
                 continuation.finish()
                 return
             }
-            let state = State(watchedPath: watchedPath, continuation: continuation)
+            let state = State(watchedPath: watchedPath, isRecursive: recursive, continuation: continuation)
             let info = Unmanaged.passRetained(state)
             var context = FSEventStreamContext(
                 version: 0, info: info.toOpaque(), retain: nil, release: nil, copyDescription: nil)
@@ -67,15 +70,19 @@ enum DirectoryWatcher {
 
     private final class State: Sendable {
         let watchedPath: String
+        let isRecursive: Bool
         let continuation: AsyncStream<Void>.Continuation
 
-        init(watchedPath: String, continuation: AsyncStream<Void>.Continuation) {
+        init(watchedPath: String, isRecursive: Bool, continuation: AsyncStream<Void>.Continuation) {
             self.watchedPath = watchedPath
+            self.isRecursive = isRecursive
             self.continuation = continuation
         }
 
-        /// True for the watched directory itself and for its direct children.
+        /// True for the watched directory itself and for its direct children; for anything
+        /// FSEvents reports when the whole tree is watched.
         func concerns(_ path: String) -> Bool {
+            if isRecursive { return true }
             var path = path
             if path.count > 1, path.hasSuffix("/") { path.removeLast() }
             return path == watchedPath || (path as NSString).deletingLastPathComponent == watchedPath

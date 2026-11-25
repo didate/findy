@@ -339,11 +339,12 @@ public final class BrowserModel: Identifiable {
         }
     }
 
-    /// Follows the repository's own folder, where `HEAD` lives: a checkout made in a terminal
-    /// shows up at once. Watches the repository current at the time of the call.
+    /// Follows the whole working tree, `.git` included: a file edited three folders down or a
+    /// checkout made in a terminal both show up without a reload. Watches the repository current
+    /// at the time of the call.
     public func followGitChanges() async {
-        guard let gitDirectory = gitInfo?.gitDirectory else { return }
-        for await _ in fileSystem.changes(in: gitDirectory) {
+        guard let root = gitInfo?.root else { return }
+        for await _ in fileSystem.changes(under: root) {
             refreshStatus()
         }
     }

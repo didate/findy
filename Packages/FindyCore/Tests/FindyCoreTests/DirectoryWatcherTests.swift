@@ -14,9 +14,10 @@ import Testing
 
     /// Runs `trigger` once the watch is live, and reports whether a change arrived within `timeout`.
     private func changeArrives(
-        in directory: URL, timeout: Duration, after trigger: @escaping @Sendable () throws -> Void
+        in directory: URL, recursive: Bool = false, timeout: Duration,
+        after trigger: @escaping @Sendable () throws -> Void
     ) async throws -> Bool {
-        let changes = DirectoryWatcher.changes(in: directory, latency: 0.05)
+        let changes = DirectoryWatcher.changes(in: directory, recursive: recursive, latency: 0.05)
         return try await withThrowingTaskGroup(of: Bool.self) { group in
             group.addTask {
                 for await _ in changes { return true }
@@ -65,6 +66,18 @@ import Testing
                 try Data("x".utf8).write(to: deep.appendingPathComponent("deep.txt"))
             }
             #expect(!arrived)
+        }
+    }
+
+    @Test func reportsChangesDeeperInTheTreeWhenAskedTo() async throws {
+        try await withScratchDirectory { directory in
+            let deep = directory.appendingPathComponent("a/b", isDirectory: true)
+            try FileManager.default.createDirectory(at: deep, withIntermediateDirectories: true)
+            try await Task.sleep(for: .milliseconds(500))
+            let arrived = try await changeArrives(in: directory, recursive: true, timeout: .seconds(5)) {
+                try Data("x".utf8).write(to: deep.appendingPathComponent("deep.txt"))
+            }
+            #expect(arrived)
         }
     }
 

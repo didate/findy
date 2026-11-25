@@ -12,6 +12,10 @@ public protocol FileSystemProviding: Sendable {
     /// Yields each time the direct children of `directory` change, until the consumer stops iterating.
     func changes(in directory: URL) -> AsyncStream<Void>
 
+    /// Yields each time anything changes under `root`, at any depth, until the consumer stops
+    /// iterating. Slower to react than `changes(in:)`: a build writing hundreds of files is one event.
+    func changes(under root: URL) -> AsyncStream<Void>
+
     /// Lists the volumes the user can browse.
     func mountedVolumes() async -> [Volume]
 
