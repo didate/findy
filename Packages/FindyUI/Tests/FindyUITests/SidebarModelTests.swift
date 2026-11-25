@@ -14,6 +14,7 @@ private struct FakeLocations: FileSystemProviding {
     func mountedVolumes() async -> [Volume] { [Volume(url: URL(fileURLWithPath: "/"), name: "Macintosh HD")] }
     func cloudLocations() async -> [Volume] { cloud }
     func gitInfo(for directory: URL) async -> GitInfo? { nil }
+    func gitChanges(inRepositoryAt root: URL) async -> GitChanges? { nil }
     func availableSpace(at directory: URL) async -> Int64? { nil }
     func isBrowsableFolder(_ url: URL) async -> Bool { folders.contains(url.path) }
 }

@@ -33,9 +33,11 @@
 - [x] Status bar: number of items, selection and its size, free space, and the Git branch of the folder (followed live)
 - [x] Copy Path (⌥⌘C) for the selection or the current folder
 - [x] Open in Editor (⌥⌘E): the selection, or the current folder as a project, in the code editor chosen in Settings
+- [x] Git changes in the status bar: files changed, commits to push and to pull
 
 ## Next
 
+- [ ] Mark each changed file in the list (modified, new, ignored)
 - [ ] Drop on tabs
 - [ ] Keep the main thread free when the user re-sorts a very large folder (76 ms for 10,000 files today)
 - [ ] An option to choose whether folders come first

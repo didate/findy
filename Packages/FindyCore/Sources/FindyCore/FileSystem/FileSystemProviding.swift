@@ -24,6 +24,10 @@ public protocol FileSystemProviding: Sendable {
     /// The Git repository `directory` belongs to, if any. Read from the repository's own files.
     func gitInfo(for directory: URL) async -> GitInfo?
 
+    /// What changed in the working tree whose top folder is `root`. `nil` when Git is not
+    /// installed or the folder is not a working tree.
+    func gitChanges(inRepositoryAt root: URL) async -> GitChanges?
+
     /// The space left on the volume holding `directory`, in bytes, when the volume reports it.
     func availableSpace(at directory: URL) async -> Int64?
 }

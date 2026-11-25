@@ -81,6 +81,10 @@ public struct LocalFileSystem: FileSystemProviding {
         GitRepository.info(for: directory)
     }
 
+    public func gitChanges(inRepositoryAt root: URL) async -> GitChanges? {
+        await GitStatusReader.changes(inRepositoryAt: root)
+    }
+
     public func availableSpace(at directory: URL) async -> Int64? {
         // The figure Finder shows: it counts the space the system can free on demand.
         let values = try? directory.resourceValues(forKeys: [

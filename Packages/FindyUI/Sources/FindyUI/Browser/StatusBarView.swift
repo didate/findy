@@ -13,6 +13,7 @@ struct StatusBarView: View {
                 .truncationMode(.middle)
             Spacer(minLength: 8)
             if let git = model.gitInfo {
+                if let changes = model.gitChanges { changesView(changes) }
                 Label {
                     Text(verbatim: git.head)
                         .lineLimit(1)
@@ -33,6 +34,21 @@ struct StatusBarView: View {
         .padding(.horizontal, 10)
         .frame(height: 24)
         .background(.bar)
+    }
+
+    /// Commits to push and to pull, then the number of changed files. Nothing when all is clean.
+    @ViewBuilder private func changesView(_ changes: GitChanges) -> some View {
+        if let ahead = changes.ahead, ahead > 0 {
+            Text(verbatim: "↑\(ahead)")
+                .accessibilityLabel(Text("\(ahead) commits to push", bundle: .module))
+        }
+        if let behind = changes.behind, behind > 0 {
+            Text(verbatim: "↓\(behind)")
+                .accessibilityLabel(Text("\(behind) commits to pull", bundle: .module))
+        }
+        if changes.changedFiles > 0 {
+            Text("\(changes.changedFiles) changed", bundle: .module)
+        }
     }
 
     private var summary: String {

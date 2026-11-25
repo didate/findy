@@ -32,6 +32,10 @@ private struct FakeFileSystem: FileSystemProviding {
 
     func gitInfo(for directory: URL) async -> GitInfo? { git[directory.path] }
 
+    func gitChanges(inRepositoryAt root: URL) async -> GitChanges? {
+        git[root.path] == nil ? nil : GitChanges(changedFiles: 3, ahead: 1, behind: 0)
+    }
+
     func availableSpace(at directory: URL) async -> Int64? { 1_000 }
 
     func isBrowsableFolder(_ url: URL) async -> Bool { listings[url.path] != nil }
@@ -400,11 +404,13 @@ private struct FakeFileSystem: FileSystemProviding {
         await model.statusTask?.value
         #expect(model.gitInfo == info)
         #expect(model.availableSpace == 1_000)
+        #expect(model.gitChanges == GitChanges(changedFiles: 3, ahead: 1, behind: 0))
 
         // Leaving the repository drops the branch.
         model.navigate(to: sub)
         await model.statusTask?.value
         #expect(model.gitInfo == nil)
+        #expect(model.gitChanges == nil)
     }
 
     @Test func addsUpTheSizeOfTheSelection() async {

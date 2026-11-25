@@ -91,4 +91,51 @@ import Testing
 
         #expect((space ?? 0) > 0)
     }
+
+    @Test func countsChangesAndCommitsAheadAndBehind() {
+        let status = """
+            # branch.oid 0bce7cb1f2a3b4c5d6e7f8091a2b3c4d5e6f7081
+            # branch.head main
+            # branch.upstream origin/main
+            # branch.ab +2 -1
+            1 .M N... 100644 100644 100644 aaa bbb README.md
+            2 R. N... 100644 100644 100644 aaa bbb R100 new name.txt\told name.txt
+            u UU N... 100644 100644 100644 100644 aaa bbb ccc conflict.txt
+            ? été 🌞.txt
+            ! ignored.log
+            """
+
+        let changes = GitStatusReader.parse(status)
+
+        #expect(changes == GitChanges(changedFiles: 4, ahead: 2, behind: 1))
+    }
+
+    @Test func aBranchWithoutUpstreamHasNoAheadOrBehind() {
+        let changes = GitStatusReader.parse("# branch.oid (initial)\n# branch.head main\n")
+
+        #expect(changes == GitChanges(changedFiles: 0))
+    }
+
+    @Test func asksGitAboutARealRepository() async throws {
+        // Skipped on a Mac without Git: there is nothing to ask.
+        guard let git = GitStatusReader.candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0) })
+        else { return }
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("FindyCoreTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let initialize = Process()
+        initialize.executableURL = URL(filePath: git)
+        initialize.arguments = ["-C", root.path, "init", "--quiet"]
+        try initialize.run()
+        initialize.waitUntilExit()
+        try Data().write(to: root.appendingPathComponent("new file.txt"))
+        try Data().write(to: root.appendingPathComponent("other.txt"))
+
+        let changes = await LocalFileSystem().gitChanges(inRepositoryAt: root)
+        let outside = await LocalFileSystem().gitChanges(inRepositoryAt: URL(filePath: "/"))
+
+        #expect(changes == GitChanges(changedFiles: 2))
+        #expect(outside == nil)
+    }
 }

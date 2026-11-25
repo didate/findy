@@ -78,6 +78,8 @@ public final class BrowserModel: Identifiable {
 
     /// The Git repository the folder shown belongs to, if any.
     public private(set) var gitInfo: GitInfo?
+    /// What changed in that repository. Arrives after the branch: Git has to be asked.
+    public private(set) var gitChanges: GitChanges?
     /// Bytes left on the volume of the folder shown, when the volume reports it.
     public private(set) var availableSpace: Int64?
 
@@ -316,8 +318,14 @@ public final class BrowserModel: Identifiable {
             let git = await fileSystem.gitInfo(for: directory)
             let space = await fileSystem.availableSpace(at: directory)
             guard !Task.isCancelled, location == directory else { return }
+            // Changes counted for another repository must not sit next to this one's branch.
+            if git?.root != gitInfo?.root { gitChanges = nil }
             gitInfo = git
             availableSpace = space
+            guard let root = git?.root else { return }
+            let changes = await fileSystem.gitChanges(inRepositoryAt: root)
+            guard !Task.isCancelled, location == directory else { return }
+            gitChanges = changes
         }
     }
 
