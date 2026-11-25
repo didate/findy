@@ -5,7 +5,9 @@ import Observation
 /// State of one browser pane: where it is, what it shows, and its navigation history.
 @MainActor
 @Observable
-public final class BrowserModel {
+public final class BrowserModel: Identifiable {
+    public nonisolated let id = UUID()
+
     public private(set) var location: URL
     /// The entries to display, already filtered and sorted.
     public private(set) var items: [FileItem] = []
@@ -21,6 +23,9 @@ public final class BrowserModel {
         didSet { if showsHiddenFiles != oldValue { rebuildItems() } }
     }
 
+    /// Whether the path bar is a text field right now.
+    public var isEditingPath = false
+
     public private(set) var canGoBack = false
     public private(set) var canGoForward = false
 
@@ -30,7 +35,18 @@ public final class BrowserModel {
         location.path == "/" ? "/" : location.lastPathComponent
     }
 
-    private let fileSystem: any FileSystemProviding
+    /// The location split into segments, from the root down.
+    public var crumbs: [PathCrumb] {
+        var url = URL(filePath: "/", directoryHint: .isDirectory).canonicalLocation
+        var result = [PathCrumb(name: "/", url: url)]
+        for component in location.pathComponents.dropFirst() {
+            url = url.appendingPathComponent(component).canonicalLocation
+            result.append(PathCrumb(name: component, url: url))
+        }
+        return result
+    }
+
+    let fileSystem: any FileSystemProviding
     private var allItems: [FileItem] = []
     private var backStack: [URL] = [] {
         didSet { canGoBack = !backStack.isEmpty }
@@ -62,6 +78,14 @@ public final class BrowserModel {
         show(destination)
     }
 
+    /// Navigates to a path typed by the user. `~` is expanded; anything that is not absolute is ignored.
+    public func navigate(toPath path: String) {
+        let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        let expanded = NSString(string: trimmed).expandingTildeInPath
+        guard expanded.hasPrefix("/") else { return }
+        navigate(to: URL(filePath: expanded, directoryHint: .isDirectory))
+    }
+
     public func goBack() {
         guard let previous = backStack.popLast() else { return }
         forwardStack.append(location)
@@ -77,6 +101,15 @@ public final class BrowserModel {
     public func goUp() {
         guard canGoUp else { return }
         navigate(to: location.deletingLastPathComponent())
+    }
+
+    /// Opens an entry the way a double-click does. Returns `false` when the entry is not a folder,
+    /// so the caller can hand it to the system.
+    @discardableResult
+    public func open(_ item: FileItem) -> Bool {
+        guard item.isFolder else { return false }
+        navigate(to: item.url)
+        return true
     }
 
     /// Lists the current location again.

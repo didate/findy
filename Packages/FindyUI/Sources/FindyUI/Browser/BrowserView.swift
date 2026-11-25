@@ -1,61 +1,37 @@
-import AppKit
-import FindyCore
 import SwiftUI
 
-/// One browser window: sidebar on the left, file list on the right.
+/// One browser window: sidebar on the left, panes on the right.
 public struct BrowserView: View {
-    @State private var model = BrowserModel()
+    @State private var workspace = WorkspaceModel()
     @State private var sidebar = SidebarModel()
 
     public init() {}
 
     public var body: some View {
         NavigationSplitView {
-            SidebarView(model: sidebar, location: model.location) { url in
-                model.navigate(to: url)
+            SidebarView(model: sidebar, location: workspace.activePane.location) { url in
+                workspace.activePane.navigate(to: url)
             }
             .navigationSplitViewColumnWidth(min: 160, ideal: 200, max: 320)
         } detail: {
-            content
-                .navigationTitle(model.title)
-                .navigationSubtitle(model.location.path)
-                .toolbar { toolbar }
-        }
-        .task {
-            model.reload()
-            await sidebar.loadVolumes()
-        }
-    }
-
-    @ViewBuilder private var content: some View {
-        if let errorMessage = model.errorMessage {
-            ContentUnavailableView {
-                Label {
-                    Text("Can’t Open This Folder", bundle: .module)
-                } icon: {
-                    Image(systemName: "exclamationmark.triangle")
-                }
-            } description: {
-                Text(errorMessage)
-            }
-        } else {
-            FileListView(items: model.items, sort: $model.sort) { item in
-                open(item)
-            }
-            .overlay {
-                if model.items.isEmpty && !model.isLoading {
-                    Text("Empty Folder", bundle: .module)
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
+            HStack(spacing: 0) {
+                ForEach(workspace.panes) { pane in
+                    PaneView(model: pane)
                 }
             }
+            .navigationTitle(workspace.activePane.title)
+            .toolbar { toolbar }
         }
+        .focusedSceneValue(\.workspace, workspace)
+        .task { await sidebar.loadVolumes() }
     }
 
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
+        let pane = workspace.activePane
+
         ToolbarItemGroup(placement: .navigation) {
             Button {
-                model.goBack()
+                pane.goBack()
             } label: {
                 Label {
                     Text("Back", bundle: .module)
@@ -63,11 +39,10 @@ public struct BrowserView: View {
                     Image(systemName: "chevron.left")
                 }
             }
-            .keyboardShortcut("[", modifiers: .command)
-            .disabled(!model.canGoBack)
+            .disabled(!pane.canGoBack)
 
             Button {
-                model.goForward()
+                pane.goForward()
             } label: {
                 Label {
                     Text("Forward", bundle: .module)
@@ -75,11 +50,10 @@ public struct BrowserView: View {
                     Image(systemName: "chevron.right")
                 }
             }
-            .keyboardShortcut("]", modifiers: .command)
-            .disabled(!model.canGoForward)
+            .disabled(!pane.canGoForward)
 
             Button {
-                model.goUp()
+                pane.goUp()
             } label: {
                 Label {
                     Text("Enclosing Folder", bundle: .module)
@@ -87,27 +61,22 @@ public struct BrowserView: View {
                     Image(systemName: "arrow.up")
                 }
             }
-            .keyboardShortcut(.upArrow, modifiers: .command)
-            .disabled(!model.canGoUp)
+            .disabled(!pane.canGoUp)
         }
 
         ToolbarItem(placement: .primaryAction) {
-            Toggle(isOn: $model.showsHiddenFiles) {
+            Toggle(
+                isOn: Binding(
+                    get: { pane.showsHiddenFiles },
+                    set: { pane.showsHiddenFiles = $0 }
+                )
+            ) {
                 Label {
                     Text("Show Hidden Files", bundle: .module)
                 } icon: {
-                    Image(systemName: model.showsHiddenFiles ? "eye" : "eye.slash")
+                    Image(systemName: pane.showsHiddenFiles ? "eye" : "eye.slash")
                 }
             }
-            .keyboardShortcut(".", modifiers: [.command, .shift])
-        }
-    }
-
-    private func open(_ item: FileItem) {
-        if item.isFolder {
-            model.navigate(to: item.url)
-        } else {
-            NSWorkspace.shared.open(item.url)
         }
     }
 }

@@ -113,6 +113,36 @@ private struct FakeFileSystem: FileSystemProviding {
         #expect(model.items.count == 3)
     }
 
+    @Test func navigatesToATypedPath() async {
+        let model = makeModel()
+
+        model.navigate(toPath: "  /fake/Sub/  ")
+        #expect(model.location == sub)
+
+        model.navigate(toPath: "relative/path")
+        #expect(model.location == sub)
+
+        model.navigate(toPath: "~")
+        #expect(model.location == FileManager.default.homeDirectoryForCurrentUser.canonicalLocation)
+    }
+
+    @Test func splitsTheLocationIntoCrumbs() {
+        let model = makeModel()
+        model.navigate(to: sub)
+
+        #expect(model.crumbs.map(\.name) == ["/", "fake", "Sub"])
+        #expect(model.crumbs.map(\.url.path) == ["/", "/fake", "/fake/Sub"])
+    }
+
+    @Test func opensFoldersButNotFiles() {
+        let model = makeModel()
+
+        #expect(model.open(FileItem(url: sub, isDirectory: true)))
+        #expect(model.location == sub)
+        #expect(!model.open(FileItem(url: URL(fileURLWithPath: "/fake/Sub/a.txt"))))
+        #expect(model.location == sub)
+    }
+
     @Test func reportsUnreadableFolders() async {
         let model = makeModel()
 

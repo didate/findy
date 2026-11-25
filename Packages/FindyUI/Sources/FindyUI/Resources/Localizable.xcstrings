@@ -3,87 +3,222 @@
   "strings" : {
     "Applications" : {
       "localizations" : {
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Applications" } }
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applications"
+          }
+        }
       }
     },
     "Back" : {
       "localizations" : {
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Précédent" } }
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Précédent"
+          }
+        }
       }
     },
     "Can’t Open This Folder" : {
       "localizations" : {
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Impossible d’ouvrir ce dossier" } }
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’ouvrir ce dossier"
+          }
+        }
       }
     },
     "Date Modified" : {
       "localizations" : {
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Date de modification" } }
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date de modification"
+          }
+        }
       }
     },
     "Desktop" : {
       "localizations" : {
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Bureau" } }
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bureau"
+          }
+        }
       }
     },
     "Documents" : {
       "localizations" : {
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Documents" } }
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Documents"
+          }
+        }
       }
     },
     "Downloads" : {
       "localizations" : {
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Téléchargements" } }
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Téléchargements"
+          }
+        }
       }
     },
     "Empty Folder" : {
       "localizations" : {
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Dossier vide" } }
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dossier vide"
+          }
+        }
       }
     },
     "Enclosing Folder" : {
       "localizations" : {
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Dossier parent" } }
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dossier parent"
+          }
+        }
       }
     },
     "Favorites" : {
       "localizations" : {
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Favoris" } }
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favoris"
+          }
+        }
       }
     },
     "Files" : {
       "localizations" : {
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Fichiers" } }
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fichiers"
+          }
+        }
       }
     },
     "Forward" : {
       "localizations" : {
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Suivant" } }
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suivant"
+          }
+        }
+      }
+    },
+    "Go" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aller"
+          }
+        }
+      }
+    },
+    "Go to Folder…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aller au dossier…"
+          }
+        }
       }
     },
     "Home" : {
       "localizations" : {
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Départ" } }
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Départ"
+          }
+        }
       }
     },
     "Locations" : {
       "localizations" : {
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Emplacements" } }
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emplacements"
+          }
+        }
       }
     },
     "Name" : {
       "localizations" : {
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Nom" } }
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom"
+          }
+        }
+      }
+    },
+    "Path" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chemin"
+          }
+        }
+      }
+    },
+    "Reload" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recharger"
+          }
+        }
       }
     },
     "Show Hidden Files" : {
       "localizations" : {
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Afficher les fichiers cachés" } }
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les fichiers cachés"
+          }
+        }
+      }
+    },
+    "Show or Hide Hidden Files" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher ou masquer les fichiers cachés"
+          }
+        }
       }
     },
     "Size" : {
       "localizations" : {
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Taille" } }
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taille"
+          }
+        }
       }
     }
   },

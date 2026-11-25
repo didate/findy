@@ -45,12 +45,21 @@ public struct LocalFileSystem: FileSystemProviding {
             return FileItem(url: url)
         }
         let isDirectory = values.isDirectory ?? false
+        let isSymbolicLink = values.isSymbolicLink ?? false
+        // Only links pay for a second lookup, to learn whether double-clicking them opens a folder.
+        var linksToFolder = false
+        if isSymbolicLink,
+            let target = try? url.resolvingSymlinksInPath().resourceValues(forKeys: [.isDirectoryKey, .isPackageKey])
+        {
+            linksToFolder = (target.isDirectory ?? false) && !(target.isPackage ?? false)
+        }
         return FileItem(
             url: url,
             name: values.name,
             isDirectory: isDirectory,
             isPackage: values.isPackage ?? false,
-            isSymbolicLink: values.isSymbolicLink ?? false,
+            isSymbolicLink: isSymbolicLink,
+            linksToFolder: linksToFolder,
             isHidden: values.isHidden ?? false,
             size: isDirectory ? nil : values.fileSize.map(Int64.init),
             modificationDate: values.contentModificationDate

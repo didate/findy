@@ -59,6 +59,25 @@ import Testing
 
             #expect(link.isSymbolicLink)
             #expect(!link.isDirectory)
+            #expect(link.linksToFolder)
+            #expect(link.isFolder)
+        }
+    }
+
+    @Test func linksToFilesAndBrokenLinksAreNotFolders() async throws {
+        try await withScratchDirectory { directory in
+            let file = directory.appendingPathComponent("file.txt")
+            try Data().write(to: file)
+            try FileManager.default.createSymbolicLink(
+                at: directory.appendingPathComponent("to-file"), withDestinationURL: file)
+            try FileManager.default.createSymbolicLink(
+                at: directory.appendingPathComponent("broken"),
+                withDestinationURL: directory.appendingPathComponent("nowhere"))
+
+            let items = try await LocalFileSystem().contents(of: directory)
+
+            #expect(items.first { $0.name == "to-file" }?.isFolder == false)
+            #expect(items.first { $0.name == "broken" }?.isFolder == false)
         }
     }
 

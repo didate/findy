@@ -9,5 +9,6 @@ struct FindyApp: App {
                 .frame(minWidth: 640, minHeight: 360)
         }
         .defaultSize(width: 980, height: 620)
+        .commands { BrowserCommands() }
     }
 }
