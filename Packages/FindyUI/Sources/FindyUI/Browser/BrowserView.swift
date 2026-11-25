@@ -9,7 +9,8 @@ public struct BrowserView: View {
     ///   A window opened by New Tab shows the folder that command asked for instead.
     public init(location: URL? = nil) {
         let start = BrowserWindow.pendingLocation ?? location ?? FileManager.default.homeDirectoryForCurrentUser
-        _workspace = State(initialValue: WorkspaceModel(location: start))
+        _workspace = State(
+            initialValue: WorkspaceModel(location: start, settingsStore: FolderSettingsDatabase.shared))
     }
 
     public var body: some View {

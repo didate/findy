@@ -283,6 +283,47 @@ private struct FakeFileSystem: FileSystemProviding {
         #expect(model.items.allSatisfy { $0.size == nil })
     }
 
+    @Test func remembersSortAndHiddenFilesPerFolder() async throws {
+        let store = try SQLiteFolderSettingsStore()
+        let fileSystem = FakeFileSystem(listings: ["/fake": [], "/fake/Sub": []])
+        let model = BrowserModel(location: root, fileSystem: fileSystem, settingsStore: store)
+        model.reload()
+        await model.loadTask?.value
+
+        model.sort = FileSort(key: .size, ascending: false)
+        model.showsHiddenFiles = true
+        await model.settingsTask?.value
+
+        // A folder the user never customized starts from the defaults.
+        model.navigate(to: sub)
+        await model.loadTask?.value
+        #expect(model.sort == FileSort())
+        #expect(!model.showsHiddenFiles)
+        #expect(try await store.settings(for: sub) == nil)
+
+        model.goBack()
+        await model.loadTask?.value
+        #expect(model.sort == FileSort(key: .size, ascending: false))
+        #expect(model.showsHiddenFiles)
+
+        // Another pane, or the next launch, finds the same settings.
+        let other = BrowserModel(location: root, fileSystem: fileSystem, settingsStore: store)
+        other.reload()
+        await other.loadTask?.value
+        #expect(other.sort == FileSort(key: .size, ascending: false))
+        #expect(other.showsHiddenFiles)
+    }
+
+    @Test func withoutAStoreSettingsFollowTheUserAround() async {
+        let model = makeModel()
+        model.sort = FileSort(key: .size)
+
+        model.navigate(to: sub)
+        await model.loadTask?.value
+
+        #expect(model.sort == FileSort(key: .size))
+    }
+
     @Test func reportsUnreadableFolders() async {
         let model = makeModel()
 

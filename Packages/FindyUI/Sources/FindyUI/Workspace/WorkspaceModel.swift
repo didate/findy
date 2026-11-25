@@ -28,14 +28,17 @@ public final class WorkspaceModel {
 
     private let fileSystem: any FileSystemProviding
     private let operations: any FileOperating
+    private let settingsStore: (any FolderSettingsStoring)?
     private let defaults: UserDefaults
 
     public init(
         location: URL = FileManager.default.homeDirectoryForCurrentUser,
         fileSystem: any FileSystemProviding = LocalFileSystem(),
         operations: any FileOperating = LocalFileOperations(),
+        settingsStore: (any FolderSettingsStoring)? = nil,
         defaults: UserDefaults = .standard
     ) {
+        self.settingsStore = settingsStore
         self.fileSystem = fileSystem
         self.operations = operations
         self.defaults = defaults
@@ -45,7 +48,7 @@ public final class WorkspaceModel {
         panes = [
             BrowserModel(
                 location: location, fileSystem: fileSystem, operations: operations, history: history,
-                calculatesFolderSizes: calculatesFolderSizes)
+                settingsStore: settingsStore, calculatesFolderSizes: calculatesFolderSizes)
         ]
     }
 
@@ -88,6 +91,6 @@ public final class WorkspaceModel {
     private func makePane(at location: URL) -> BrowserModel {
         BrowserModel(
             location: location, fileSystem: fileSystem, operations: operations, history: history,
-            calculatesFolderSizes: calculatesFolderSizes)
+            settingsStore: settingsStore, calculatesFolderSizes: calculatesFolderSizes)
     }
 }

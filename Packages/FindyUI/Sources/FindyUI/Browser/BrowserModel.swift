@@ -16,12 +16,22 @@ public final class BrowserModel: Identifiable {
     /// Why the current location could not be listed, if it could not.
     public private(set) var errorMessage: String?
 
+    /// Remembered per folder when the pane has a settings store.
     public var sort = FileSort() {
-        didSet { if sort != oldValue { rebuildItems() } }
+        didSet {
+            guard sort != oldValue else { return }
+            rebuildItems()
+            saveSettings()
+        }
     }
 
+    /// Remembered per folder when the pane has a settings store.
     public var showsHiddenFiles = false {
-        didSet { if showsHiddenFiles != oldValue { rebuildItems() } }
+        didSet {
+            guard showsHiddenFiles != oldValue else { return }
+            rebuildItems()
+            saveSettings()
+        }
     }
 
     /// Text typed in the list. Only entries whose name contains it are shown.
@@ -88,6 +98,14 @@ public final class BrowserModel: Identifiable {
 
     let fileSystem: any FileSystemProviding
     let operations: any FileOperating
+    private let settingsStore: (any FolderSettingsStoring)?
+    /// The folder whose saved settings are currently applied.
+    private var settingsLocation: URL?
+    /// True while saved settings are being applied, so applying them is not taken for a change
+    /// by the user and written straight back.
+    private var isApplyingSettings = false
+    /// The save in flight. Internal so tests can await it.
+    private(set) var settingsTask: Task<Void, Never>?
     /// Shared by the panes of a window, so Undo reverts the last action wherever it was made.
     public let history: UndoHistory
     /// The operation in flight. Internal so tests can await it.
@@ -122,6 +140,7 @@ public final class BrowserModel: Identifiable {
         fileSystem: any FileSystemProviding = LocalFileSystem(),
         operations: any FileOperating = LocalFileOperations(),
         history: UndoHistory = UndoHistory(),
+        settingsStore: (any FolderSettingsStoring)? = nil,
         calculatesFolderSizes: Bool = true,
         openFiles: @escaping @MainActor ([URL]) -> Void = { urls in
             for url in urls { NSWorkspace.shared.open(url) }
@@ -131,6 +150,7 @@ public final class BrowserModel: Identifiable {
         self.fileSystem = fileSystem
         self.operations = operations
         self.history = history
+        self.settingsStore = settingsStore
         self.calculatesFolderSizes = calculatesFolderSizes
         self.openFiles = openFiles
     }
@@ -227,6 +247,9 @@ public final class BrowserModel: Identifiable {
         isLoading = true
         let directory = location
         loadTask = Task { [fileSystem] in
+            // Settings first, so the folder appears directly in the order the user chose for it.
+            await applySavedSettings(for: directory)
+            guard !Task.isCancelled else { return }
             do {
                 let listed = try await fileSystem.contents(of: directory)
                 guard !Task.isCancelled else { return }
@@ -243,6 +266,39 @@ public final class BrowserModel: Identifiable {
             applyPendingSelection()
             isLoading = false
             startSizing()
+        }
+    }
+
+    /// Applies what the user chose for `directory` the last time, or the defaults for a folder
+    /// they never customized. Does nothing when the folder's settings are already applied.
+    private func applySavedSettings(for directory: URL) async {
+        guard let settingsStore, settingsLocation != directory else { return }
+        var saved: FolderSettings?
+        do {
+            saved = try await settingsStore.settings(for: directory)
+        } catch {
+            report(error)
+        }
+        guard !Task.isCancelled, location == directory else { return }
+        let settings = saved ?? FolderSettings()
+        isApplyingSettings = true
+        sort = settings.sort
+        showsHiddenFiles = settings.showsHiddenFiles
+        isApplyingSettings = false
+        settingsLocation = directory
+    }
+
+    private func saveSettings() {
+        guard let settingsStore, !isApplyingSettings else { return }
+        let folder = location
+        let settings = FolderSettings(sort: sort, showsHiddenFiles: showsHiddenFiles)
+        settingsLocation = folder
+        settingsTask = Task {
+            do {
+                try await settingsStore.save(settings, for: folder)
+            } catch {
+                report(error)
+            }
         }
     }
 
