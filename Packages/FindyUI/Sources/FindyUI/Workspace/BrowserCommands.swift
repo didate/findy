@@ -55,6 +55,14 @@ public struct BrowserCommands: Commands {
             .disabled(workspace == nil)
 
             Button {
+                workspace?.activePane.openEditor()
+            } label: {
+                Text("Open in Editor", bundle: .module)
+            }
+            .keyboardShortcut("e", modifiers: [.command, .option])
+            .disabled(workspace == nil)
+
+            Button {
                 if let pane = workspace?.activePane { FavoritesStore.shared.add(pane.foldersForSidebar) }
             } label: {
                 Text("Add to Sidebar", bundle: .module)

@@ -127,6 +127,7 @@ public final class BrowserModel: Identifiable {
     var renameAfterLoad: String?
     private let openFiles: @MainActor ([URL]) -> Void
     private let openInTerminal: @MainActor (URL) async throws -> Void
+    private let openInEditor: @MainActor ([URL]) async throws -> Void
     /// The listing as the disk gave it.
     private var allItems: [FileItem] = []
     /// The listing without what is hidden, with folder sizes, in display order. `items` is this
@@ -142,7 +143,7 @@ public final class BrowserModel: Identifiable {
     private(set) var loadTask: Task<Void, Never>?
     /// The read of the Git branch and of the free space in flight. Internal so tests can await it.
     private(set) var statusTask: Task<Void, Never>?
-    /// The terminal launch in flight. Internal so tests can await it.
+    /// The terminal or editor launch in flight. Internal so tests can await it.
     private(set) var terminalTask: Task<Void, Never>?
 
     /// Sizes computed so far, by folder path. Kept across navigation so a folder seen before shows
@@ -164,7 +165,8 @@ public final class BrowserModel: Identifiable {
         openFiles: @escaping @MainActor ([URL]) -> Void = { urls in
             for url in urls { NSWorkspace.shared.open(url) }
         },
-        openInTerminal: @escaping @MainActor (URL) async throws -> Void = { try await TerminalLauncher.open($0) }
+        openInTerminal: @escaping @MainActor (URL) async throws -> Void = { try await TerminalLauncher.open($0) },
+        openInEditor: @escaping @MainActor ([URL]) async throws -> Void = { try await EditorLauncher.open($0) }
     ) {
         self.location = location.canonicalLocation
         self.fileSystem = fileSystem
@@ -175,6 +177,7 @@ public final class BrowserModel: Identifiable {
         self.calculatesFolderSizes = calculatesFolderSizes
         self.openFiles = openFiles
         self.openInTerminal = openInTerminal
+        self.openInEditor = openInEditor
     }
 
     // MARK: Navigation
@@ -263,6 +266,26 @@ public final class BrowserModel: Identifiable {
     public var foldersForSidebar: [URL] {
         let folders = selectedItems.filter(\.isFolder).map(\.url)
         return selection.isEmpty ? [location] : folders
+    }
+
+    // MARK: Editor
+
+    /// What Open in Editor hands to the editor: the selection, or the folder shown when nothing
+    /// is selected, which opens it as a project.
+    public var editorTargets: [URL] {
+        let selected = selectedItems.map(\.url)
+        return selected.isEmpty ? [location] : selected
+    }
+
+    public func openEditor() {
+        let targets = editorTargets
+        terminalTask = Task {
+            do {
+                try await openInEditor(targets)
+            } catch {
+                report(error)
+            }
+        }
     }
 
     // MARK: Status

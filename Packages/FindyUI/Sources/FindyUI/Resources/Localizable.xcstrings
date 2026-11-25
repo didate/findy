@@ -161,6 +161,16 @@
         }
       }
     },
+    "Code editor:" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Éditeur de code :"
+          }
+        }
+      }
+    },
     "Copy" : {
       "localizations" : {
         "fr" : {
@@ -471,6 +481,16 @@
         }
       }
     },
+    "No code editor Findy knows is installed on this Mac." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun éditeur de code connu de Findy n’est installé sur ce Mac."
+          }
+        }
+      }
+    },
     "No Matches" : {
       "localizations" : {
         "fr" : {
@@ -497,6 +517,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ouvrir"
+          }
+        }
+      }
+    },
+    "Open in Editor" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir dans l’éditeur"
           }
         }
       }
@@ -727,6 +757,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "dossier sans titre"
+          }
+        }
+      }
+    },
+    "Used by Open in Editor." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisé par « Ouvrir dans l’éditeur »."
           }
         }
       }

@@ -429,4 +429,48 @@ private struct FakeFileSystem: FileSystemProviding {
         // In the order shown, whatever the order of selection.
         #expect(model.pathsForClipboard == "/fake/a.txt\n/fake/b.txt")
     }
+
+    @Test func opensTheSelectionOrTheFolderInTheEditor() async {
+        var opened: [[URL]] = []
+        let fileSystem = FakeFileSystem(listings: [
+            "/fake": [
+                FileItem(url: URL(fileURLWithPath: "/fake/a.txt"), size: 9),
+                FileItem(url: sub, isDirectory: true),
+            ]
+        ])
+        let model = BrowserModel(location: root, fileSystem: fileSystem, openInEditor: { opened.append($0) })
+        model.reload()
+        await model.loadTask?.value
+
+        model.openEditor()
+        await model.terminalTask?.value
+        model.selection = [URL(fileURLWithPath: "/fake/a.txt")]
+        model.openEditor()
+        await model.terminalTask?.value
+
+        #expect(opened.map { $0.map(\.path) } == [["/fake"], ["/fake/a.txt"]])
+    }
+
+    @Test func tellsTheUserWhenNoEditorCanBeOpened() async {
+        struct NoEditor: LocalizedError {
+            var errorDescription: String? { "no editor" }
+        }
+        let fileSystem = FakeFileSystem(listings: ["/fake": []])
+        let model = BrowserModel(location: root, fileSystem: fileSystem, openInEditor: { _ in throw NoEditor() })
+
+        model.openEditor()
+        await model.terminalTask?.value
+
+        #expect(model.alertMessage?.contains("no editor") == true)
+    }
+
+    @Test func prefersTheChosenEditorWhenItIsInstalled() {
+        let code = EditorApp(name: "Code", bundleIdentifier: "code")
+        let zed = EditorApp(name: "Zed", bundleIdentifier: "zed")
+
+        #expect(EditorLauncher.preferred(among: [code, zed], chosen: "zed") == zed)
+        #expect(EditorLauncher.preferred(among: [code, zed], chosen: "gone") == code)
+        #expect(EditorLauncher.preferred(among: [code, zed], chosen: nil) == code)
+        #expect(EditorLauncher.preferred(among: [], chosen: "zed") == nil)
+    }
 }

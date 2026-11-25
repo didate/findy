@@ -32,6 +32,7 @@
 - [x] Cloud storage folders under Locations (iCloud Drive, Google Drive and the other File Provider services)
 - [x] Status bar: number of items, selection and its size, free space, and the Git branch of the folder (followed live)
 - [x] Copy Path (⌥⌘C) for the selection or the current folder
+- [x] Open in Editor (⌥⌘E): the selection, or the current folder as a project, in the code editor chosen in Settings
 
 ## Next
 

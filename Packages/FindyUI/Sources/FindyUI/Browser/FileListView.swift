@@ -390,6 +390,7 @@ struct FileListView: NSViewRepresentable {
             menu.autoenablesItems = false
             addItem(to: menu, String(localized: "Open", bundle: .module), #selector(menuOpen), enabled: count > 0)
             addItem(to: menu, String(localized: "Open in Terminal", bundle: .module), #selector(menuTerminal))
+            addItem(to: menu, String(localized: "Open in Editor", bundle: .module), #selector(menuEditor))
             addItem(
                 to: menu, String(localized: "Add to Sidebar", bundle: .module), #selector(menuAddToSidebar),
                 enabled: !model.foldersForSidebar.isEmpty)
@@ -419,6 +420,7 @@ struct FileListView: NSViewRepresentable {
         }
 
         @objc private func menuOpen() { model.openSelection() }
+        @objc private func menuEditor() { model.openEditor() }
         @objc private func menuCopyPath() { model.copyPath() }
         @objc private func menuTerminal() { model.openTerminal() }
         @objc private func menuAddToSidebar() { FavoritesStore.shared.add(model.foldersForSidebar) }

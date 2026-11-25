@@ -17,6 +17,7 @@ A free, open-source, native file manager for macOS. It runs alongside Finder and
 - A copy shows its progress and can be stopped at any point, leaving nothing half-written
 - Undo and redo for every file operation
 - Open in Terminal (⌥⌘T) on the current or the selected folder, in the terminal app of your choice
+- Open in Editor (⌥⌘E): the selection, or the current folder as a project, in VS Code, Cursor, Zed, Xcode and others
 - Status bar with the item count, the selection size, the free space and the current Git branch
 - Copy Path (⌥⌘C)
 - The list follows changes on disk

@@ -93,6 +93,18 @@ public struct BrowserView: View {
         }
 
         ToolbarItem(placement: .primaryAction) {
+            Button {
+                pane.openEditor()
+            } label: {
+                Label {
+                    Text("Open in Editor", bundle: .module)
+                } icon: {
+                    Image(systemName: "chevron.left.forwardslash.chevron.right")
+                }
+            }
+        }
+
+        ToolbarItem(placement: .primaryAction) {
             Toggle(
                 isOn: Binding(
                     get: { workspace.isDualPane },
