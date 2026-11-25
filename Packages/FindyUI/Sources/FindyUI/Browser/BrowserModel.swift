@@ -51,6 +51,15 @@ public final class BrowserModel: Identifiable {
         }
     }
 
+    /// The entry being renamed in the list, if any.
+    public var renamingURL: URL?
+
+    /// A failure to tell the user about. Cleared when they dismiss it.
+    public var alertMessage: String?
+
+    /// True while an operation on files is running.
+    public internal(set) var isBusy = false
+
     /// Whether the path bar is a text field right now.
     public var isEditingPath = false
 
@@ -75,6 +84,17 @@ public final class BrowserModel: Identifiable {
     }
 
     let fileSystem: any FileSystemProviding
+    let operations: any FileOperating
+    /// Shared by the panes of a window, so Undo reverts the last action wherever it was made.
+    public let history: UndoHistory
+    /// The operation in flight. Internal so tests can await it.
+    var operationTask: Task<Void, Never>?
+    /// Names to select once the next listing shows them (a new folder, a renamed file…).
+    /// Names, not URLs: the system spells the same folder `/var/…` or `/private/var/…` depending
+    /// on who is asked, and the two do not compare equal.
+    var selectAfterLoad: Set<String>?
+    /// Name of the entry to start renaming once the next listing shows it.
+    var renameAfterLoad: String?
     private let openFiles: @MainActor ([URL]) -> Void
     private var allItems: [FileItem] = []
     private var backStack: [URL] = [] {
@@ -97,6 +117,8 @@ public final class BrowserModel: Identifiable {
     public init(
         location: URL = FileManager.default.homeDirectoryForCurrentUser,
         fileSystem: any FileSystemProviding = LocalFileSystem(),
+        operations: any FileOperating = LocalFileOperations(),
+        history: UndoHistory = UndoHistory(),
         calculatesFolderSizes: Bool = true,
         openFiles: @escaping @MainActor ([URL]) -> Void = { urls in
             for url in urls { NSWorkspace.shared.open(url) }
@@ -104,6 +126,8 @@ public final class BrowserModel: Identifiable {
     ) {
         self.location = location.canonicalLocation
         self.fileSystem = fileSystem
+        self.operations = operations
+        self.history = history
         self.calculatesFolderSizes = calculatesFolderSizes
         self.openFiles = openFiles
     }
@@ -195,7 +219,7 @@ public final class BrowserModel: Identifiable {
     }
 
     /// Lists the current location again, keeping what is already known about it.
-    private func refresh() {
+    func refresh() {
         loadTask?.cancel()
         isLoading = true
         let directory = location
@@ -213,8 +237,25 @@ public final class BrowserModel: Identifiable {
                 errorMessage = error.localizedDescription
             }
             rebuildItems()
+            applyPendingSelection()
             isLoading = false
             startSizing()
+        }
+    }
+
+    /// Selects, and possibly starts renaming, the entries an operation just produced.
+    private func applyPendingSelection() {
+        if let names = selectAfterLoad {
+            let found = items.filter { names.contains($0.name) }.map(\.url)
+            // Not listed yet: keep waiting for the refresh that shows them.
+            if !found.isEmpty {
+                selection = Set(found)
+                selectAfterLoad = nil
+            }
+        }
+        if let name = renameAfterLoad, let item = items.first(where: { $0.name == name }) {
+            renamingURL = item.url
+            renameAfterLoad = nil
         }
     }
 
@@ -276,6 +317,9 @@ public final class BrowserModel: Identifiable {
         errorMessage = nil
         filterText = ""
         selection = []
+        renamingURL = nil
+        selectAfterLoad = nil
+        renameAfterLoad = nil
         sizeTask?.cancel()
         sizeTask = nil
         reload()

@@ -23,6 +23,9 @@ public final class WorkspaceModel {
 
     private static let folderSizesKey = "calculatesFolderSizes"
 
+    /// One undo history for the whole window.
+    public let history = UndoHistory()
+
     private let fileSystem: any FileSystemProviding
     private let defaults: UserDefaults
 
@@ -37,7 +40,9 @@ public final class WorkspaceModel {
         let calculatesFolderSizes = defaults.object(forKey: Self.folderSizesKey) as? Bool ?? true
         self.calculatesFolderSizes = calculatesFolderSizes
         panes = [
-            BrowserModel(location: location, fileSystem: fileSystem, calculatesFolderSizes: calculatesFolderSizes)
+            BrowserModel(
+                location: location, fileSystem: fileSystem, history: history,
+                calculatesFolderSizes: calculatesFolderSizes)
         ]
     }
 

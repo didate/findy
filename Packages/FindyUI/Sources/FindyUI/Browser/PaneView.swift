@@ -16,6 +16,21 @@ struct PaneView: View {
                 FilterBarView(model: model)
             }
         }
+        .alert(
+            Text("The operation couldn’t be completed.", bundle: .module),
+            isPresented: Binding(
+                get: { model.alertMessage != nil },
+                set: { if !$0 { model.alertMessage = nil } }
+            )
+        ) {
+            Button {
+                model.alertMessage = nil
+            } label: {
+                Text("OK", bundle: .module)
+            }
+        } message: {
+            Text(verbatim: model.alertMessage ?? "")
+        }
         .task { model.reload() }
         // Restarted on every navigation, cancelled when the pane goes away.
         .task(id: model.location) { await model.followChanges() }
@@ -39,6 +54,7 @@ struct PaneView: View {
                 location: model.location,
                 selection: model.selection,
                 sort: model.sort,
+                renamingURL: model.renamingURL,
                 onActivate: onActivate
             )
             .overlay {

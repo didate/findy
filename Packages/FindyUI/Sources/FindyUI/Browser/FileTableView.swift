@@ -9,6 +9,8 @@ protocol FileTableViewActions: AnyObject {
     func tableViewDeleteFilterBackward() -> Bool
     /// Returns `false` when there was no filter, so the key keeps its usual meaning.
     func tableViewClearFilter() -> Bool
+    func tableViewBeginRename()
+    func tableViewContextMenu() -> NSMenu?
 }
 
 /// `NSTableView` that turns plain typing into an instant filter.
@@ -18,6 +20,22 @@ final class FileTableView: NSTableView {
     private enum KeyCode {
         static let delete: UInt16 = 51
         static let escape: UInt16 = 53
+        static let `return`: UInt16 = 36
+        static let enter: UInt16 = 76
+    }
+
+    // MARK: Context menu
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let row = row(at: convert(event.locationInWindow, from: nil))
+        // A right-click acts on the row under the pointer, as in Finder: it joins an existing
+        // selection it is part of, and replaces any other.
+        if row < 0 {
+            deselectAll(nil)
+        } else if !selectedRowIndexes.contains(row) {
+            selectRowIndexes([row], byExtendingSelection: false)
+        }
+        return actions?.tableViewContextMenu()
     }
 
     override func becomeFirstResponder() -> Bool {
@@ -37,6 +55,9 @@ final class FileTableView: NSTableView {
             if actions.tableViewClearFilter() { return }
         case KeyCode.delete:
             if actions.tableViewDeleteFilterBackward() { return }
+        case KeyCode.return, KeyCode.enter:
+            actions.tableViewBeginRename()
+            return
         default:
             if let text = event.characters, Self.isFilterText(text) {
                 actions.tableViewAppendToFilter(text)

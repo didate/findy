@@ -13,6 +13,7 @@ struct FileListView: NSViewRepresentable {
     let location: URL
     let selection: Set<URL>
     let sort: FileSort
+    let renamingURL: URL?
     let onActivate: () -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -53,7 +54,7 @@ struct FileListView: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         let coordinator = context.coordinator
         coordinator.parent = self
-        coordinator.apply(items: items, location: location, selection: selection, sort: sort)
+        coordinator.applyModelState()
     }
 
     // MARK: Columns
@@ -95,7 +96,9 @@ struct FileListView: NSViewRepresentable {
     // MARK: Coordinator
 
     @MainActor
-    final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate, FileTableViewActions {
+    final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSTextFieldDelegate,
+        FileTableViewActions
+    {
         var parent: FileListView
         weak var tableView: FileTableView?
 
@@ -104,6 +107,8 @@ struct FileListView: NSViewRepresentable {
         /// True while the coordinator pushes model state into the table, so the table's delegate
         /// callbacks are not mistaken for user actions and echoed back to the model.
         private var isApplying = false
+        /// The entry whose name is being edited in place, and its text field.
+        private var editing: (url: URL, field: NSTextField)?
 
         private var iconCache: [String: NSImage] = [:]
         private let dateFormatter: DateFormatter = {
@@ -127,7 +132,19 @@ struct FileListView: NSViewRepresentable {
 
         // MARK: Model → table
 
-        func apply(items newItems: [FileItem], location newLocation: URL, selection: Set<URL>, sort: FileSort) {
+        func applyModelState() {
+            // Reloading rows would tear down the field the user is typing in. The state is applied
+            // when the edit ends.
+            guard editing == nil else { return }
+            // Read from the model, not from `parent`: this also runs right after an edit ends, when
+            // `parent` still holds the values of the last SwiftUI update.
+            apply(items: model.items, location: model.location, selection: model.selection, sort: model.sort)
+            if let url = model.renamingURL { beginEditing(url) }
+        }
+
+        private func apply(
+            items newItems: [FileItem], location newLocation: URL, selection: Set<URL>, sort: FileSort
+        ) {
             guard let tableView else { return }
             isApplying = true
             defer { isApplying = false }
@@ -233,6 +250,97 @@ struct FileListView: NSViewRepresentable {
 
         func tableViewClearFilter() -> Bool {
             model.clearFilter()
+        }
+
+        func tableViewBeginRename() {
+            model.beginRenamingSelection()
+        }
+
+        // MARK: Context menu
+
+        func tableViewContextMenu() -> NSMenu? {
+            let count = model.selection.count
+            let menu = NSMenu()
+            menu.autoenablesItems = false
+            addItem(to: menu, String(localized: "Open", bundle: .module), #selector(menuOpen), enabled: count > 0)
+            menu.addItem(.separator())
+            addItem(
+                to: menu, String(localized: "Rename", bundle: .module), #selector(menuRename), enabled: count == 1)
+            addItem(
+                to: menu, String(localized: "Move to Trash", bundle: .module), #selector(menuTrash),
+                enabled: count > 0)
+            menu.addItem(.separator())
+            addItem(to: menu, String(localized: "New Folder", bundle: .module), #selector(menuNewFolder))
+            return menu
+        }
+
+        private func addItem(to menu: NSMenu, _ title: String, _ action: Selector, enabled: Bool = true) {
+            let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+            item.target = self
+            item.isEnabled = enabled
+            menu.addItem(item)
+        }
+
+        @objc private func menuOpen() { model.openSelection() }
+        @objc private func menuRename() { model.beginRenamingSelection() }
+        @objc private func menuTrash() { model.trashSelection() }
+        @objc private func menuNewFolder() { model.newFolder() }
+
+        // MARK: Renaming in place
+
+        private func beginEditing(_ url: URL) {
+            guard let tableView, let row = items.firstIndex(where: { $0.url == url }) else {
+                model.cancelRename()
+                return
+            }
+            tableView.scrollRowToVisible(row)
+            guard let cell = tableView.view(atColumn: 0, row: row, makeIfNecessary: true) as? NSTableCellView,
+                let field = cell.textField
+            else {
+                model.cancelRename()
+                return
+            }
+            editing = (url, field)
+            field.isEditable = true
+            field.drawsBackground = true
+            field.backgroundColor = .textBackgroundColor
+            field.textColor = .labelColor
+            field.delegate = self
+            tableView.window?.makeFirstResponder(field)
+            // Select the name without its extension, so typing replaces only the name.
+            let name = items[row].name as NSString
+            let stemLength = items[row].isDirectory ? name.length : (name.deletingPathExtension as NSString).length
+            field.currentEditor()?.selectedRange = NSRange(location: 0, length: stemLength > 0 ? stemLength : name.length)
+        }
+
+        /// Puts the field back to a plain label and gives the list the focus and its latest state.
+        private func endEditing() -> (url: URL, text: String)? {
+            guard let (url, field) = editing else { return nil }
+            let text = field.stringValue
+            editing = nil
+            field.delegate = nil
+            field.isEditable = false
+            field.drawsBackground = false
+            // Until the rename lands and the list refreshes, the row keeps showing the real name.
+            field.stringValue = url.lastPathComponent
+            tableView?.window?.makeFirstResponder(tableView)
+            return (url, text)
+        }
+
+        func controlTextDidEndEditing(_ notification: Notification) {
+            guard let (url, text) = endEditing() else { return }
+            model.commitRename(of: url, to: text)
+            applyModelState()
+        }
+
+        func control(_ control: NSControl, textView: NSTextView, doCommandBy selector: Selector) -> Bool {
+            guard selector == #selector(NSResponder.cancelOperation(_:)), editing != nil else { return false }
+            // Escape: detach first, so aborting the edit is not taken for a commit.
+            control.abortEditing()
+            _ = endEditing()
+            model.cancelRename()
+            applyModelState()
+            return true
         }
 
         // MARK: Cells
