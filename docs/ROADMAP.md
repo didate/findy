@@ -26,6 +26,11 @@
 - [x] v0.1.0 published on GitHub, installable with `brew install --cask didate/tap/findy`
 - [x] Progress of a copy or a move, with a Stop button that works in the middle of a file
 
+## v0.2 (in progress)
+
+- [x] Your own favorites in the sidebar: add a folder (File > Add to Sidebar, ⌃⌘T, or drop it between two favorites), remove it, reorder by dragging
+- [x] Cloud storage folders under Locations (iCloud Drive, Google Drive and the other File Provider services)
+
 ## Next
 
 - [ ] Drop on tabs
@@ -45,6 +50,8 @@
 - Browse archives without extracting them
 - Icon and column views
 - SFTP and S3
+- Recents and Tags in the sidebar (both need a Spotlight query)
+- Trash in the sidebar (today the Trash is left to Finder; this needs a change of that rule first)
 
 ## Not planned
 

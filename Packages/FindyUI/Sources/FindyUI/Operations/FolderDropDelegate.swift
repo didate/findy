@@ -48,7 +48,7 @@ struct FolderDropDelegate: DropDelegate {
     }
 
     /// The system hands dropped files over asynchronously, one provider per file.
-    private static func fileURL(from provider: NSItemProvider) async -> URL? {
+    static func fileURL(from provider: NSItemProvider) async -> URL? {
         await withCheckedContinuation { continuation in
             _ = provider.loadObject(ofClass: URL.self) { url, _ in
                 continuation.resume(returning: url)

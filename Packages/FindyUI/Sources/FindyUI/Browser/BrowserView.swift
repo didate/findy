@@ -39,7 +39,7 @@ public struct BrowserView: View {
         }
         .background(WindowAccessor { BrowserWindow.windowDidAppear($0) })
         .focusedSceneValue(\.workspace, workspace)
-        .task { await sidebar.loadVolumes() }
+        .task { await sidebar.loadLocations() }
     }
 
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {

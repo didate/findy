@@ -14,4 +14,10 @@ public protocol FileSystemProviding: Sendable {
 
     /// Lists the volumes the user can browse.
     func mountedVolumes() async -> [Volume]
+
+    /// Lists the cloud storage folders synced on this Mac (iCloud Drive, Google Drive…).
+    func cloudLocations() async -> [Volume]
+
+    /// Whether `url` is a folder the user can browse (a package such as an app is not).
+    func isBrowsableFolder(_ url: URL) async -> Bool
 }

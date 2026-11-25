@@ -1,6 +1,6 @@
 import Foundation
 
-/// A mounted volume shown in the sidebar.
+/// A place shown under Locations in the sidebar: a mounted volume or a cloud storage folder.
 public struct Volume: Identifiable, Hashable, Sendable {
     public let url: URL
     public let name: String

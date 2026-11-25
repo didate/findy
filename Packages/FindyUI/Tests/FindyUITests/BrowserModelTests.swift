@@ -26,6 +26,10 @@ private struct FakeFileSystem: FileSystemProviding {
     }
 
     func mountedVolumes() async -> [Volume] { [] }
+
+    func cloudLocations() async -> [Volume] { [] }
+
+    func isBrowsableFolder(_ url: URL) async -> Bool { listings[url.path] != nil }
 }
 
 @MainActor

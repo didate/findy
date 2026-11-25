@@ -17,11 +17,38 @@ struct SidebarView: View {
                         onDrop(favorite.url, urls, move)
                     }
                     .tag(favorite.url)
+                    .contextMenu {
+                        Button {
+                            model.removeFavorite(favorite.url)
+                        } label: {
+                            Text("Remove from Sidebar", bundle: .module)
+                        }
+                    }
+                }
+                .onMove { source, destination in
+                    model.moveFavorites(fromOffsets: source, toOffset: destination)
+                }
+                // Folders dropped between two rows become favorites, at that place.
+                .onInsert(of: [.fileURL]) { index, providers in
+                    Task {
+                        var urls: [URL] = []
+                        for provider in providers {
+                            if let url = await FolderDropDelegate.fileURL(from: provider) { urls.append(url) }
+                        }
+                        await model.addFavorites(urls, at: index)
+                    }
                 }
             } header: {
                 Text("Favorites", bundle: .module)
             }
             Section {
+                ForEach(model.cloudLocations) { location in
+                    SidebarRow(name: location.name, systemImage: model.systemImage(forCloudLocation: location)) {
+                        urls, move in
+                        onDrop(location.url, urls, move)
+                    }
+                    .tag(location.url)
+                }
                 ForEach(model.volumes) { volume in
                     SidebarRow(name: volume.name, systemImage: "internaldrive") { urls, move in
                         onDrop(volume.url, urls, move)

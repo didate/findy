@@ -6,7 +6,7 @@ A free, open-source, native file manager for macOS. It runs alongside Finder and
 
 ## Features
 
-- Sidebar, tabs (⌘T) and an optional second pane (⇧⌘D)
+- Sidebar with your own favorites and your cloud folders, tabs (⌘T) and an optional second pane (⇧⌘D)
 - Path bar you can click or type in (⌘L)
 - Type in the list to filter the current folder instantly
 - Folder sizes and real file icons, computed in the background

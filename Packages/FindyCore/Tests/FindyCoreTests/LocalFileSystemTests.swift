@@ -127,4 +127,62 @@ import Testing
 
         #expect(volumes.contains { $0.url.path == "/" })
     }
+
+    @Test func findsCloudFoldersUnderTheHomeFolder() async throws {
+        try await withScratchDirectory { home in
+            let storage = home.appendingPathComponent("Library/CloudStorage", isDirectory: true)
+            for name in ["GoogleDrive-me@example.com", "Dropbox", "OneDrive-Personal"] {
+                try FileManager.default.createDirectory(
+                    at: storage.appendingPathComponent(name), withIntermediateDirectories: true)
+            }
+            try FileManager.default.createDirectory(
+                at: home.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs"),
+                withIntermediateDirectories: true)
+            // Neither a stray file nor a hidden entry is a cloud service.
+            try Data().write(to: storage.appendingPathComponent("notes.txt"))
+            try Data().write(to: storage.appendingPathComponent(".DS_Store"))
+
+            let locations = LocalFileSystem.cloudLocations(home: home)
+
+            #expect(locations.map(\.name) == ["iCloud Drive", "Dropbox", "Google Drive", "OneDrive"])
+            #expect(locations[2].url.lastPathComponent == "GoogleDrive-me@example.com")
+        }
+    }
+
+    @Test func twoAccountsOfOneCloudServiceKeepTheirFullName() async throws {
+        try await withScratchDirectory { home in
+            let storage = home.appendingPathComponent("Library/CloudStorage", isDirectory: true)
+            for name in ["GoogleDrive-a@example.com", "GoogleDrive-b@example.com"] {
+                try FileManager.default.createDirectory(
+                    at: storage.appendingPathComponent(name), withIntermediateDirectories: true)
+            }
+
+            let locations = LocalFileSystem.cloudLocations(home: home)
+
+            #expect(locations.map(\.name) == ["GoogleDrive-a@example.com", "GoogleDrive-b@example.com"])
+        }
+    }
+
+    @Test func aHomeWithoutCloudServicesHasNoCloudFolders() async throws {
+        try await withScratchDirectory { home in
+            #expect(LocalFileSystem.cloudLocations(home: home).isEmpty)
+        }
+    }
+
+    @Test func onlyFoldersAndLinksToFoldersAreBrowsable() async throws {
+        try await withScratchDirectory { directory in
+            let folder = directory.appendingPathComponent("Folder 📁")
+            let file = directory.appendingPathComponent("notes.txt")
+            let link = directory.appendingPathComponent("link")
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
+            try Data().write(to: file)
+            try FileManager.default.createSymbolicLink(at: link, withDestinationURL: folder)
+            let fileSystem = LocalFileSystem()
+
+            #expect(await fileSystem.isBrowsableFolder(folder))
+            #expect(await fileSystem.isBrowsableFolder(link))
+            #expect(await fileSystem.isBrowsableFolder(file) == false)
+            #expect(await fileSystem.isBrowsableFolder(directory.appendingPathComponent("missing")) == false)
+        }
+    }
 }

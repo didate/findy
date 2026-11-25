@@ -21,6 +21,16 @@
         }
       }
     },
+    "Add to Sidebar" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter à la barre latérale"
+          }
+        }
+      }
+    },
     "An item named “%@” already exists in this location." : {
       "localizations" : {
         "fr" : {
@@ -467,6 +477,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recharger"
+          }
+        }
+      }
+    },
+    "Remove from Sidebar" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer de la barre latérale"
           }
         }
       }

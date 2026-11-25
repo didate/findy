@@ -55,6 +55,15 @@ public struct BrowserCommands: Commands {
             .disabled(workspace == nil)
 
             Button {
+                if let pane = workspace?.activePane { FavoritesStore.shared.add(pane.foldersForSidebar) }
+            } label: {
+                Text("Add to Sidebar", bundle: .module)
+            }
+            // Same shortcut as in Finder.
+            .keyboardShortcut("t", modifiers: [.command, .control])
+            .disabled(workspace?.activePane.foldersForSidebar.isEmpty != false)
+
+            Button {
                 workspace?.activePane.beginRenamingSelection()
             } label: {
                 Text("Rename", bundle: .module)

@@ -252,6 +252,12 @@ public final class BrowserModel: Identifiable {
         }
     }
 
+    /// What Add to Sidebar adds: the selected folders, or the folder shown when none is selected.
+    public var foldersForSidebar: [URL] {
+        let folders = selectedItems.filter(\.isFolder).map(\.url)
+        return selection.isEmpty ? [location] : folders
+    }
+
     // MARK: Filter
 
     public func appendToFilter(_ text: String) {

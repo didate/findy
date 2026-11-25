@@ -67,6 +67,55 @@ public struct LocalFileSystem: FileSystemProviding {
         }
     }
 
+    public func cloudLocations() async -> [Volume] {
+        Self.cloudLocations(home: FileManager.default.homeDirectoryForCurrentUser)
+    }
+
+    public func isBrowsableFolder(_ url: URL) async -> Bool {
+        // `resourceValues` reads the link itself, so a link to a folder is resolved first.
+        let values = try? url.resolvingSymlinksInPath().resourceValues(forKeys: [.isDirectoryKey, .isPackageKey])
+        return (values?.isDirectory ?? false) && !(values?.isPackage ?? false)
+    }
+
+    /// Cloud folders live at fixed places under the home folder: iCloud Drive in `Mobile Documents`,
+    /// every File Provider service (Google Drive, OneDrive, Dropbox…) in `CloudStorage`.
+    /// Only names are read here, so nothing gets downloaded.
+    static func cloudLocations(home: URL) -> [Volume] {
+        var locations: [Volume] = []
+
+        let iCloud = home.appending(path: "Library/Mobile Documents/com~apple~CloudDocs", directoryHint: .isDirectory)
+        if (try? iCloud.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
+            locations.append(Volume(url: iCloud.canonicalLocation, name: "iCloud Drive"))
+        }
+
+        let storage = home.appending(path: "Library/CloudStorage", directoryHint: .isDirectory)
+        // A Mac without any cloud service has no such folder: that is an empty list, not an error.
+        let folders =
+            (try? FileManager.default.contentsOfDirectory(
+                at: storage, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])) ?? []
+        let services =
+            folders
+            .filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true }
+            .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
+            .map { (url: $0, name: cloudServiceName(folderName: $0.lastPathComponent)) }
+        for service in services {
+            // Two accounts of the same service would read the same: keep the full folder name then.
+            let isAmbiguous = services.filter { $0.name == service.name }.count > 1
+            locations.append(
+                Volume(
+                    url: service.url.canonicalLocation,
+                    name: isAmbiguous ? service.url.lastPathComponent : service.name))
+        }
+        return locations
+    }
+
+    /// `CloudStorage` folders are named `<Service>-<account>`, for example `GoogleDrive-me@example.com`.
+    /// The system gives them no nicer display name (checked on macOS 26.3), so the service part is used.
+    static func cloudServiceName(folderName: String) -> String {
+        let service = folderName.split(separator: "-", maxSplits: 1).first.map(String.init) ?? folderName
+        return service == "GoogleDrive" ? "Google Drive" : service
+    }
+
     private static func makeItem(_ url: URL) -> FileItem {
         // An entry can vanish between the listing and this read. It is still listed, by name only,
         // rather than failing the whole directory.
