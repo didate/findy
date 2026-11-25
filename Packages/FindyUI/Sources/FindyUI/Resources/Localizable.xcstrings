@@ -471,6 +471,16 @@
         }
       }
     },
+    "Folders First" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dossiers en premier"
+          }
+        }
+      }
+    },
     "Forward" : {
       "localizations" : {
         "fr" : {

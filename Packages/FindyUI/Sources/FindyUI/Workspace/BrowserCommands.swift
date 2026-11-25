@@ -192,6 +192,16 @@ public struct BrowserCommands: Commands {
 
             Toggle(
                 isOn: Binding(
+                    get: { workspace?.activePane.sort.foldersFirst ?? true },
+                    set: { workspace?.activePane.sort.foldersFirst = $0 }
+                )
+            ) {
+                Text("Folders First", bundle: .module)
+            }
+            .disabled(workspace == nil)
+
+            Toggle(
+                isOn: Binding(
                     get: { workspace?.calculatesFolderSizes ?? false },
                     set: { workspace?.calculatesFolderSizes = $0 }
                 )

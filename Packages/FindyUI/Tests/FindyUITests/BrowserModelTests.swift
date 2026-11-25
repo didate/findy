@@ -490,4 +490,15 @@ private struct FakeFileSystem: FileSystemProviding {
         #expect(EditorLauncher.preferred(among: [code, zed], chosen: nil) == code)
         #expect(EditorLauncher.preferred(among: [], chosen: "zed") == nil)
     }
+
+    @Test func mixesFoldersWithFilesWhenFoldersFirstIsOff() async {
+        let model = makeModel()
+        model.reload()
+        await model.loadTask?.value
+        #expect(model.items.map(\.name) == ["Sub", "a.txt", "b.txt"])
+
+        model.sort.foldersFirst = false
+
+        #expect(model.items.map(\.name) == ["a.txt", "b.txt", "Sub"])
+    }
 }
