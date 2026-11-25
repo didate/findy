@@ -1,0 +1,54 @@
+name: Findy
+
+options:
+  bundleIdPrefix: app.findy
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+
+packages:
+  FindyCore:
+    path: Packages/FindyCore
+  FindyUI:
+    path: Packages/FindyUI
+
+targets:
+  Findy:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+        excludes:
+          - Info.plist
+    dependencies:
+      - package: FindyUI
+      - package: FindyCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.findy.Findy
+        MARKETING_VERSION: 0.1.0
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: App/Info.plist
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        INFOPLIST_KEY_NSDesktopFolderUsageDescription: Findy shows the files in your Desktop folder.
+        INFOPLIST_KEY_NSDocumentsFolderUsageDescription: Findy shows the files in your Documents folder.
+        INFOPLIST_KEY_NSDownloadsFolderUsageDescription: Findy shows the files in your Downloads folder.
+        INFOPLIST_KEY_NSRemovableVolumesUsageDescription: Findy shows the files on your removable volumes.
+        INFOPLIST_KEY_NSNetworkVolumesUsageDescription: Findy shows the files on your network volumes.
+        # No sandbox (full disk access is the point of the app); Hardened Runtime stays on.
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: YES
+        # Ad-hoc signing: builds on any machine without a developer account.
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+
+schemes:
+  Findy:
+    build:
+      targets:
+        Findy: all
+    run:
+      config: Debug
