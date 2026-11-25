@@ -30,6 +30,13 @@ extension BrowserModel {
         return !move || urls.contains { !Self.isInside($0, directory: directory) }
     }
 
+    /// Handles files dropped on something that stands for `directory`. Drops that would do nothing
+    /// or put a folder inside itself are ignored.
+    public func drop(_ urls: [URL], into directory: URL, move: Bool) {
+        guard canAccept(urls, in: directory, move: move) else { return }
+        transfer(urls, move: move, into: directory)
+    }
+
     /// Copies or moves `urls` into `directory`, this pane's folder by default. If some names are
     /// already taken, nothing happens yet: `pendingTransfer` is set and the user decides with
     /// `resolveTransfer`.

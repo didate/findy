@@ -71,13 +71,7 @@ struct PathBarView: View {
                 separator
             }
             ForEach(crumbs) { crumb in
-                Button {
-                    model.navigate(to: crumb.url)
-                } label: {
-                    Text(verbatim: crumb.name).lineLimit(1)
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(crumb.url == model.location ? .primary : .secondary)
+                PathCrumbButton(crumb: crumb, isCurrent: crumb.url == model.location, model: model)
                 if crumb.url != model.location {
                     separator
                 }
@@ -91,5 +85,33 @@ struct PathBarView: View {
             .font(.caption2)
             .foregroundStyle(.tertiary)
             .accessibilityHidden(true)
+    }
+}
+
+/// One segment of the path. A click goes there; files dropped on it are moved or copied there.
+private struct PathCrumbButton: View {
+    let crumb: PathCrumb
+    let isCurrent: Bool
+    let model: BrowserModel
+
+    @State private var isTargeted = false
+
+    var body: some View {
+        Button {
+            model.navigate(to: crumb.url)
+        } label: {
+            Text(verbatim: crumb.name).lineLimit(1)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(isCurrent ? .primary : .secondary)
+        .padding(.horizontal, 3)
+        .padding(.vertical, 1)
+        .background(
+            RoundedRectangle(cornerRadius: 4)
+                .fill(isTargeted ? AnyShapeStyle(.tint.opacity(0.35)) : AnyShapeStyle(.clear))
+        )
+        .folderDropTarget(isTargeted: $isTargeted) { urls, move in
+            model.drop(urls, into: crumb.url, move: move)
+        }
     }
 }

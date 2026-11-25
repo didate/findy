@@ -388,6 +388,24 @@ private struct StallingOperations: FileOperating {
         }
     }
 
+    @Test func aDropOnAFolderStandInMovesFilesThereAndIgnoresPointlessDrops() async throws {
+        try await withTransferSetup { model, source, destination in
+            let file = source.appendingPathComponent("one.txt")
+
+            // Dropping a file on the folder it is already in does nothing, not even an alert.
+            model.drop([file], into: source, move: true)
+            await settle(model)
+            #expect(names(in: source) == ["one.txt", "two.txt"])
+            #expect(model.alertMessage == nil)
+            #expect(model.history.undoName == nil)
+
+            model.drop([file], into: destination, move: true)
+            await settle(model)
+            #expect(names(in: destination) == ["one.txt"])
+            #expect(names(in: source) == ["two.txt"])
+        }
+    }
+
     @Test func refusesDropsThatWouldDoNothingOrLoop() async throws {
         try await withTransferSetup { model, source, destination in
             let file = source.appendingPathComponent("one.txt")

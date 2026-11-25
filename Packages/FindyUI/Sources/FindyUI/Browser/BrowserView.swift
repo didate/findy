@@ -17,6 +17,8 @@ public struct BrowserView: View {
         NavigationSplitView {
             SidebarView(model: sidebar, location: workspace.activePane.location) { url in
                 workspace.activePane.navigate(to: url)
+            } onDrop: { folder, urls, move in
+                workspace.activePane.drop(urls, into: folder, move: move)
             }
             .navigationSplitViewColumnWidth(min: 160, ideal: 200, max: 320)
         } detail: {

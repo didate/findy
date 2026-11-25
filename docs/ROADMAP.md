@@ -19,13 +19,14 @@
 - [x] Symbolic links to folders open like folders
 - [x] App icon
 - [x] Drag and drop in the list, between panes and with other apps
+- [x] Drop on sidebar entries and on path bar segments
 - [x] Real icons (apps, custom folders, previews of images and documents), loaded in the background
 - [x] Open in Terminal (⌥⌘T), with the terminal app chosen in Settings
 - [x] Progress of a copy or a move, with a Stop button that works in the middle of a file
 
 ## Before releasing v0.1
 
-- [ ] Drop on the sidebar, on the path bar and on tabs
+- [ ] Drop on tabs
 - [ ] Keep the main thread free when the user re-sorts a very large folder (76 ms for 10,000 files today)
 - [ ] An option to choose whether folders come first
 - [ ] Use the current settings as the default for folders never customized
