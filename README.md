@@ -52,6 +52,8 @@ swift test --package-path Packages/FindyUI
 - `Packages/FindyUI/`: SwiftUI views and AppKit controllers.
 - `docs/`: roadmap and architecture decisions.
 - `scripts/make-icon.swift`: regenerates the app icon.
+- `scripts/release.sh`: builds the release disk image; see [docs/RELEASING.md](docs/RELEASING.md).
+- `packaging/homebrew/`: the Homebrew cask.
 
 ## License
 

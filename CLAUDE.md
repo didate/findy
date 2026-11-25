@@ -89,7 +89,8 @@ findy/
 │       │   ├── Workspace/   # Fenêtre : panneaux, onglets, commandes de menu
 │       │   └── Resources/   # Localizable.xcstrings
 │       └── Tests/
-├── scripts/                 # make-icon.swift : régénère l'icône
+├── scripts/                 # make-icon.swift (icône), release.sh (DMG de release)
+├── packaging/homebrew/      # Formule Homebrew (cask)
 └── docs/                    # ROADMAP.md, decisions/
 ```
 

@@ -22,6 +22,7 @@
 - [x] Drop on sidebar entries and on path bar segments
 - [x] Real icons (apps, custom folders, previews of images and documents), loaded in the background
 - [x] Open in Terminal (⌥⌘T), with the terminal app chosen in Settings
+- [x] Release script: universal build packaged in a disk image, and a Homebrew cask
 - [x] Progress of a copy or a move, with a Stop button that works in the middle of a file
 
 ## Before releasing v0.1
@@ -31,7 +32,8 @@
 - [ ] An option to choose whether folders come first
 - [ ] Use the current settings as the default for folders never customized
 - [ ] Dim the files that were cut
-- [ ] Notarized DMG and Homebrew cask
+- [ ] Publish the v0.1.0 release and the Homebrew tap (see `docs/RELEASING.md`)
+- [ ] Sign with a Developer ID and notarize (needs an Apple Developer account)
 - [ ] Review the French strings on a French system
 
 ## Later
