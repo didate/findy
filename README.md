@@ -20,6 +20,24 @@ A free, open-source, native file manager for macOS. It runs alongside Finder and
 - The list follows changes on disk
 - English and French
 
+## Install
+
+Findy needs macOS 14 or later. It runs on Apple Silicon and Intel.
+
+With Homebrew:
+
+```bash
+brew install --cask didate/tap/findy
+```
+
+Or download `Findy-<version>.dmg` from the [latest release](https://github.com/didate/findy/releases/latest), open it and drag Findy to Applications.
+
+**The first launch needs one extra step.** Findy is not notarized by Apple yet, so macOS refuses to open it at first. Open it once, dismiss the warning, then go to System Settings > Privacy & Security and click Open Anyway. Or run this once:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Findy.app
+```
+
 ## Goals
 
 1. **Never lose data.** Every destructive action is explicit and undoable.
