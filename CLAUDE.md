@@ -38,7 +38,9 @@ Quand une fonctionnalité entre en conflit avec l'une de ces promesses, la prome
 
 ### Après le MVP (ne pas commencer avant que v0.1 soit sortie)
 
-File de copies avec pause, reprise et gestion des conflits. Renommage par lot avec regex et aperçu. Quick Look intégré. Terminal intégré. Recherche Spotlight limitée au dossier. Navigation dans les archives. Vues icônes et colonnes. SFTP et S3.
+File de copies avec pause, reprise et gestion des conflits. Renommage par lot avec regex et aperçu. Quick Look intégré. Recherche Spotlight limitée au dossier. Navigation dans les archives. Vues icônes et colonnes. SFTP et S3.
+
+**Écarté** : le terminal intégré. « Ouvrir dans le terminal » passe le dossier au terminal de l'utilisateur, et c'est suffisant.
 
 ### Règle de périmètre
 

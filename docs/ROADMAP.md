@@ -39,8 +39,11 @@
 - Copy queue with pause, resume and conflict handling
 - Batch rename with regex and preview
 - Built-in Quick Look
-- Built-in terminal
 - Spotlight search scoped to the current folder
 - Browse archives without extracting them
 - Icon and column views
 - SFTP and S3
+
+## Not planned
+
+- Built-in terminal. Open in Terminal hands the folder to the user's own terminal app, which is enough.
