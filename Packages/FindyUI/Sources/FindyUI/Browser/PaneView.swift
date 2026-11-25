@@ -1,16 +1,20 @@
-import AppKit
 import FindyCore
 import SwiftUI
 
 /// One pane: its path bar on top of its file list.
 struct PaneView: View {
     @Bindable var model: BrowserModel
+    let onActivate: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
             PathBarView(model: model)
             Divider()
             content
+            if !model.filterText.isEmpty {
+                Divider()
+                FilterBarView(model: model)
+            }
         }
         .task { model.reload() }
     }
@@ -27,16 +31,26 @@ struct PaneView: View {
                 Text(errorMessage)
             }
         } else {
-            FileListView(items: model.items, sort: $model.sort) { item in
-                if !model.open(item) {
-                    NSWorkspace.shared.open(item.url)
-                }
-            }
+            FileListView(
+                model: model,
+                items: model.items,
+                location: model.location,
+                selection: model.selection,
+                sort: model.sort,
+                onActivate: onActivate
+            )
             .overlay {
                 if model.items.isEmpty && !model.isLoading {
-                    Text("Empty Folder", bundle: .module)
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
+                    Group {
+                        if model.filterText.isEmpty {
+                            Text("Empty Folder", bundle: .module)
+                        } else {
+                            Text("No Matches", bundle: .module)
+                        }
+                    }
+                    .font(.title2)
+                    .foregroundStyle(.secondary)
+                    .allowsHitTesting(false)
                 }
             }
         }

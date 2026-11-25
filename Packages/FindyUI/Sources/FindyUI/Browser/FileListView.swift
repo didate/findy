@@ -4,17 +4,23 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// The file list. Backed by `NSTableView` because SwiftUI lists do not hold up at 10 000+ rows.
+///
+/// `items`, `location`, `selection` and `sort` mirror the model's state: they are passed as values so
+/// SwiftUI calls `updateNSView` whenever one of them changes.
 struct FileListView: NSViewRepresentable {
+    let model: BrowserModel
     let items: [FileItem]
-    @Binding var sort: FileSort
-    let onOpen: (FileItem) -> Void
+    let location: URL
+    let selection: Set<URL>
+    let sort: FileSort
+    let onActivate: () -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
 
     func makeNSView(context: Context) -> NSScrollView {
-        let tableView = NSTableView()
+        let tableView = FileTableView()
         tableView.style = .inset
         tableView.usesAlternatingRowBackgroundColors = true
         tableView.allowsMultipleSelection = true
@@ -30,9 +36,9 @@ struct FileListView: NSViewRepresentable {
         let coordinator = context.coordinator
         tableView.dataSource = coordinator
         tableView.delegate = coordinator
+        tableView.actions = coordinator
         tableView.target = coordinator
         tableView.doubleAction = #selector(Coordinator.openClickedRow(_:))
-        tableView.sortDescriptors = [Column.sortDescriptor(for: sort)]
         coordinator.tableView = tableView
 
         let scrollView = NSScrollView()
@@ -47,10 +53,7 @@ struct FileListView: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         let coordinator = context.coordinator
         coordinator.parent = self
-        guard coordinator.items != items else { return }
-        coordinator.items = items
-        coordinator.tableView?.reloadData()
-        coordinator.tableView?.scrollRowToVisible(0)
+        coordinator.apply(items: items, location: location, selection: selection, sort: sort)
     }
 
     // MARK: Columns
@@ -61,14 +64,6 @@ struct FileListView: NSViewRepresentable {
         case size
 
         var identifier: NSUserInterfaceItemIdentifier { .init(rawValue) }
-
-        var sortKey: FileSort.Key {
-            switch self {
-            case .name: .name
-            case .dateModified: .dateModified
-            case .size: .size
-            }
-        }
 
         var title: String {
             switch self {
@@ -95,19 +90,20 @@ struct FileListView: NSViewRepresentable {
             }
             return column
         }
-
-        static func sortDescriptor(for sort: FileSort) -> NSSortDescriptor {
-            NSSortDescriptor(key: sort.key.rawValue, ascending: sort.ascending)
-        }
     }
 
     // MARK: Coordinator
 
     @MainActor
-    final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate {
+    final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate, FileTableViewActions {
         var parent: FileListView
-        var items: [FileItem] = []
-        weak var tableView: NSTableView?
+        weak var tableView: FileTableView?
+
+        private var items: [FileItem] = []
+        private var location: URL?
+        /// True while the coordinator pushes model state into the table, so the table's delegate
+        /// callbacks are not mistaken for user actions and echoed back to the model.
+        private var isApplying = false
 
         private var iconCache: [String: NSImage] = [:]
         private let dateFormatter: DateFormatter = {
@@ -123,9 +119,56 @@ struct FileListView: NSViewRepresentable {
             return formatter
         }()
 
+        private var model: BrowserModel { parent.model }
+
         init(_ parent: FileListView) {
             self.parent = parent
         }
+
+        // MARK: Model → table
+
+        func apply(items newItems: [FileItem], location newLocation: URL, selection: Set<URL>, sort: FileSort) {
+            guard let tableView else { return }
+            isApplying = true
+            defer { isApplying = false }
+
+            let descriptor = NSSortDescriptor(key: sort.key.rawValue, ascending: sort.ascending)
+            if tableView.sortDescriptors.first != descriptor {
+                tableView.sortDescriptors = [descriptor]
+            }
+
+            let locationChanged = location != newLocation
+            location = newLocation
+            if items != newItems {
+                items = newItems
+                tableView.reloadData()
+                select(selection, in: tableView)
+                // A refresh of the same folder must not move the user's scroll position.
+                if locationChanged {
+                    tableView.scrollRowToVisible(0)
+                    // After navigating, typing must reach the list (arrows, instant filter).
+                    tableView.window?.makeFirstResponder(tableView)
+                }
+            } else if selectedURLs(in: tableView) != selection {
+                select(selection, in: tableView)
+            }
+        }
+
+        private func select(_ selection: Set<URL>, in tableView: NSTableView) {
+            var indexes = IndexSet()
+            if !selection.isEmpty {
+                for (row, item) in items.enumerated() where selection.contains(item.url) {
+                    indexes.insert(row)
+                }
+            }
+            tableView.selectRowIndexes(indexes, byExtendingSelection: false)
+        }
+
+        private func selectedURLs(in tableView: NSTableView) -> Set<URL> {
+            Set(tableView.selectedRowIndexes.compactMap { items.indices.contains($0) ? items[$0].url : nil })
+        }
+
+        // MARK: Data source and delegate
 
         func numberOfRows(in tableView: NSTableView) -> Int {
             items.count
@@ -148,25 +191,48 @@ struct FileListView: NSViewRepresentable {
             case .dateModified:
                 cell.textField?.stringValue = item.modificationDate.map(dateFormatter.string(from:)) ?? "—"
             case .size:
-                cell.textField?.stringValue = item.size.map(sizeFormatter.string(fromByteCount:)) ?? "—"
+                // A link's own size (the length of its target path) means nothing to the user.
+                let size = item.isSymbolicLink ? nil : item.size
+                cell.textField?.stringValue = size.map(sizeFormatter.string(fromByteCount:)) ?? "—"
             }
             return cell
         }
 
         func tableView(_ tableView: NSTableView, sortDescriptorsDidChange oldDescriptors: [NSSortDescriptor]) {
-            guard let descriptor = tableView.sortDescriptors.first,
+            guard !isApplying, let descriptor = tableView.sortDescriptors.first,
                 let key = descriptor.key.flatMap(FileSort.Key.init(rawValue:))
             else { return }
-            var sort = parent.sort
-            sort.key = key
-            sort.ascending = descriptor.ascending
-            parent.sort = sort
+            model.sort.key = key
+            model.sort.ascending = descriptor.ascending
+        }
+
+        func tableViewSelectionDidChange(_ notification: Notification) {
+            guard !isApplying, let tableView else { return }
+            model.selection = selectedURLs(in: tableView)
         }
 
         @objc func openClickedRow(_ sender: NSTableView) {
             let row = sender.clickedRow
             guard items.indices.contains(row) else { return }
-            parent.onOpen(items[row])
+            model.open(items[row])
+        }
+
+        // MARK: FileTableViewActions
+
+        func tableViewDidBecomeActive() {
+            parent.onActivate()
+        }
+
+        func tableViewAppendToFilter(_ text: String) {
+            model.appendToFilter(text)
+        }
+
+        func tableViewDeleteFilterBackward() -> Bool {
+            model.deleteFilterBackward()
+        }
+
+        func tableViewClearFilter() -> Bool {
+            model.clearFilter()
         }
 
         // MARK: Cells

@@ -1,3 +1,4 @@
+import AppKit
 import FindyCore
 import Foundation
 import Observation
@@ -21,6 +22,18 @@ public final class BrowserModel: Identifiable {
 
     public var showsHiddenFiles = false {
         didSet { if showsHiddenFiles != oldValue { rebuildItems() } }
+    }
+
+    /// Text typed in the list. Only entries whose name contains it are shown.
+    public var filterText = "" {
+        didSet { if filterText != oldValue { rebuildItems() } }
+    }
+
+    /// The selected entries, by location. Always a subset of `items`.
+    public var selection: Set<URL> = []
+
+    public var selectedItems: [FileItem] {
+        items.filter { selection.contains($0.url) }
     }
 
     /// Whether the path bar is a text field right now.
@@ -47,6 +60,7 @@ public final class BrowserModel: Identifiable {
     }
 
     let fileSystem: any FileSystemProviding
+    private let openFiles: @MainActor ([URL]) -> Void
     private var allItems: [FileItem] = []
     private var backStack: [URL] = [] {
         didSet { canGoBack = !backStack.isEmpty }
@@ -59,10 +73,14 @@ public final class BrowserModel: Identifiable {
 
     public init(
         location: URL = FileManager.default.homeDirectoryForCurrentUser,
-        fileSystem: any FileSystemProviding = LocalFileSystem()
+        fileSystem: any FileSystemProviding = LocalFileSystem(),
+        openFiles: @escaping @MainActor ([URL]) -> Void = { urls in
+            for url in urls { NSWorkspace.shared.open(url) }
+        }
     ) {
         self.location = location.canonicalLocation
         self.fileSystem = fileSystem
+        self.openFiles = openFiles
     }
 
     // MARK: Navigation
@@ -103,12 +121,45 @@ public final class BrowserModel: Identifiable {
         navigate(to: location.deletingLastPathComponent())
     }
 
-    /// Opens an entry the way a double-click does. Returns `false` when the entry is not a folder,
-    /// so the caller can hand it to the system.
+    /// Opens an entry the way a double-click does: folders are entered, files go to their app.
+    public func open(_ item: FileItem) {
+        if item.isFolder {
+            navigate(to: item.url)
+        } else {
+            openFiles([item.url])
+        }
+    }
+
+    /// Opens the selection: a single folder is entered, files go to their apps.
+    public func openSelection() {
+        let selected = selectedItems
+        if selected.count == 1, let only = selected.first {
+            open(only)
+        } else {
+            let files = selected.filter { !$0.isFolder }.map(\.url)
+            if !files.isEmpty { openFiles(files) }
+        }
+    }
+
+    // MARK: Filter
+
+    public func appendToFilter(_ text: String) {
+        filterText += text
+    }
+
+    /// Removes the last character of the filter. Returns `false` when there was no filter.
     @discardableResult
-    public func open(_ item: FileItem) -> Bool {
-        guard item.isFolder else { return false }
-        navigate(to: item.url)
+    public func deleteFilterBackward() -> Bool {
+        guard !filterText.isEmpty else { return false }
+        filterText.removeLast()
+        return true
+    }
+
+    /// Returns `false` when there was no filter to clear.
+    @discardableResult
+    public func clearFilter() -> Bool {
+        guard !filterText.isEmpty else { return false }
+        filterText = ""
         return true
     }
 
@@ -141,11 +192,20 @@ public final class BrowserModel: Identifiable {
         allItems = []
         items = []
         errorMessage = nil
+        filterText = ""
+        selection = []
         reload()
     }
 
     private func rebuildItems() {
-        let visible = showsHiddenFiles ? allItems : allItems.filter { !$0.isHidden }
+        var visible = showsHiddenFiles ? allItems : allItems.filter { !$0.isHidden }
+        if !filterText.isEmpty {
+            // Case- and diacritic-insensitive, like Finder's search.
+            visible = visible.filter { $0.name.localizedStandardContains(filterText) }
+        }
         items = sort.sorted(visible)
+        if !selection.isEmpty {
+            selection.formIntersection(items.map(\.url))
+        }
     }
 }

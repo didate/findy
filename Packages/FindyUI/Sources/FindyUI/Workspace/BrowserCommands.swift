@@ -7,6 +7,16 @@ public struct BrowserCommands: Commands {
     public init() {}
 
     public var body: some Commands {
+        CommandGroup(after: .newItem) {
+            Button {
+                workspace?.activePane.openSelection()
+            } label: {
+                Text("Open", bundle: .module)
+            }
+            .keyboardShortcut("o", modifiers: .command)
+            .disabled(workspace == nil)
+        }
+
         CommandGroup(after: .toolbar) {
             Button {
                 workspace?.activePane.showsHiddenFiles.toggle()
@@ -48,6 +58,13 @@ public struct BrowserCommands: Commands {
                 Text("Enclosing Folder", bundle: .module)
             }
             .keyboardShortcut(.upArrow, modifiers: .command)
+
+            Button {
+                workspace?.activePane.openSelection()
+            } label: {
+                Text("Open Selection", bundle: .module)
+            }
+            .keyboardShortcut(.downArrow, modifiers: .command)
 
             Divider()
 

@@ -134,13 +134,71 @@ private struct FakeFileSystem: FileSystemProviding {
         #expect(model.crumbs.map(\.url.path) == ["/", "/fake", "/fake/Sub"])
     }
 
-    @Test func opensFoldersButNotFiles() {
-        let model = makeModel()
+    @Test func entersFoldersAndHandsFilesToTheSystem() async {
+        var opened: [URL] = []
+        let fileSystem = FakeFileSystem(listings: ["/fake": [], "/fake/Sub": []])
+        let model = BrowserModel(location: root, fileSystem: fileSystem) { opened += $0 }
+        let file = URL(fileURLWithPath: "/fake/a.txt")
 
-        #expect(model.open(FileItem(url: sub, isDirectory: true)))
+        model.open(FileItem(url: file))
+        #expect(opened == [file])
+        #expect(model.location == root)
+
+        model.open(FileItem(url: sub, isDirectory: true))
         #expect(model.location == sub)
-        #expect(!model.open(FileItem(url: URL(fileURLWithPath: "/fake/Sub/a.txt"))))
-        #expect(model.location == sub)
+        #expect(opened == [file])
+    }
+
+    @Test func filtersByNameIgnoringCaseAndAccents() async {
+        let fileSystem = FakeFileSystem(listings: [
+            "/fake": ["Résumé.pdf", "resume-old.txt", "photo.jpg"].map {
+                FileItem(url: URL(fileURLWithPath: "/fake/\($0)"))
+            }
+        ])
+        let model = BrowserModel(location: root, fileSystem: fileSystem)
+        model.reload()
+        await model.loadTask?.value
+
+        model.appendToFilter("RESU")
+        #expect(model.items.map(\.name) == ["resume-old.txt", "Résumé.pdf"])
+
+        model.appendToFilter("x")
+        #expect(model.items.isEmpty)
+
+        #expect(model.deleteFilterBackward())
+        #expect(model.items.count == 2)
+
+        #expect(model.clearFilter())
+        #expect(model.items.count == 3)
+        #expect(!model.clearFilter())
+        #expect(!model.deleteFilterBackward())
+    }
+
+    @Test func filterAndSelectionResetWhenNavigating() async {
+        let model = makeModel()
+        model.reload()
+        await model.loadTask?.value
+        model.filterText = "a"
+        model.selection = [URL(fileURLWithPath: "/fake/a.txt")]
+
+        model.navigate(to: sub)
+
+        #expect(model.filterText.isEmpty)
+        #expect(model.selection.isEmpty)
+    }
+
+    @Test func selectionDropsEntriesTheFilterHides() async {
+        let model = makeModel()
+        model.reload()
+        await model.loadTask?.value
+        let a = URL(fileURLWithPath: "/fake/a.txt")
+        let b = URL(fileURLWithPath: "/fake/b.txt")
+        model.selection = [a, b]
+
+        model.filterText = "a."
+
+        #expect(model.selection == [a])
+        #expect(model.selectedItems.map(\.name) == ["a.txt"])
     }
 
     @Test func reportsUnreadableFolders() async {

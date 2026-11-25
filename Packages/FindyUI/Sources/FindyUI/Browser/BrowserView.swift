@@ -16,7 +16,7 @@ public struct BrowserView: View {
         } detail: {
             HStack(spacing: 0) {
                 ForEach(workspace.panes) { pane in
-                    PaneView(model: pane)
+                    PaneView(model: pane) { workspace.activate(pane) }
                 }
             }
             .navigationTitle(workspace.activePane.title)
