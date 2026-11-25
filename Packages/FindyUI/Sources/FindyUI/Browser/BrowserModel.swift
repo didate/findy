@@ -143,6 +143,11 @@ public final class BrowserModel: Identifiable {
     }
     /// The listing in flight. Internal so tests can await it.
     private(set) var loadTask: Task<Void, Never>?
+    /// The sort of a big folder in flight. Internal so tests can await it.
+    private(set) var arrangeTask: Task<Void, Never>?
+    /// Above this many entries a re-sort leaves the main thread. Below, it takes less than a
+    /// frame and stays synchronous, so the list never shows a stale order.
+    static let backgroundSortThreshold = 2_000
     /// The read of the Git branch and of the free space in flight. Internal so tests can await it.
     private(set) var statusTask: Task<Void, Never>?
     /// The terminal or editor launch in flight. Internal so tests can await it.
@@ -399,6 +404,9 @@ public final class BrowserModel: Identifiable {
                     Self.arrange(listed, showsHiddenFiles: showsHiddenFiles, sizes: sizes, sort: sort)
                 }.value
                 guard !Task.isCancelled else { return }
+                // A re-sort of the previous listing still running must not land over this one.
+                arrangeTask?.cancel()
+                arrangeTask = nil
                 allItems = listed
                 errorMessage = nil
                 if sort == self.sort, showsHiddenFiles == self.showsHiddenFiles {
@@ -528,6 +536,8 @@ public final class BrowserModel: Identifiable {
     private func show(_ url: URL) {
         location = url
         // The previous folder's rows must not linger under the new title while the listing runs.
+        arrangeTask?.cancel()
+        arrangeTask = nil
         allItems = []
         arranged = []
         items = []
@@ -560,10 +570,28 @@ public final class BrowserModel: Identifiable {
     /// Recomputes the display order from the listing. Needed when the listing, the sort, the
     /// hidden files setting or the sizes of a list sorted by size change.
     private func rebuildItems() {
-        arranged = Self.arrange(
-            allItems, showsHiddenFiles: showsHiddenFiles, sizes: calculatesFolderSizes ? folderSizes : [:],
-            sort: sort)
-        applyFilter()
+        arrangeTask?.cancel()
+        arrangeTask = nil
+        let listing = allItems
+        let showsHiddenFiles = showsHiddenFiles
+        let sizes = calculatesFolderSizes ? folderSizes : [:]
+        let sort = sort
+        guard listing.count > Self.backgroundSortThreshold else {
+            arranged = Self.arrange(listing, showsHiddenFiles: showsHiddenFiles, sizes: sizes, sort: sort)
+            applyFilter()
+            return
+        }
+        // Sorting 10,000 names takes about 75 ms, several frames: a big folder is sorted off the
+        // main thread and the list keeps its current order until the new one is ready.
+        arrangeTask = Task {
+            let sorted = await Task.detached(priority: .userInitiated) {
+                Self.arrange(listing, showsHiddenFiles: showsHiddenFiles, sizes: sizes, sort: sort)
+            }.value
+            guard !Task.isCancelled else { return }
+            arranged = sorted
+            applyFilter()
+            arrangeTask = nil
+        }
     }
 
     /// Narrows the arranged list to the entries matching the filter. Order is kept, so this never sorts.

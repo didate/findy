@@ -501,4 +501,41 @@ private struct FakeFileSystem: FileSystemProviding {
 
         #expect(model.items.map(\.name) == ["a.txt", "b.txt", "Sub"])
     }
+
+    @Test func resortsABigFolderWithoutHoldingTheMainThread() async {
+        let count = 10_000
+        let listing = (0..<count).map { FileItem(url: URL(fileURLWithPath: "/big/file \($0).txt"), size: Int64($0)) }
+        let model = BrowserModel(
+            location: URL(fileURLWithPath: "/big"), fileSystem: FakeFileSystem(listings: ["/big": listing]))
+        model.reload()
+        await model.loadTask?.value
+        #expect(model.items.first?.name == "file 0.txt")
+
+        let clock = ContinuousClock()
+        let blocked = clock.measure { model.sort.ascending = false }
+
+        // The old order stays on screen while the new one is computed elsewhere.
+        #expect(model.items.first?.name == "file 0.txt")
+        #expect(blocked < .milliseconds(16))
+        await model.arrangeTask?.value
+        #expect(model.items.first?.name == "file 9999.txt")
+        #expect(model.items.count == count)
+    }
+
+    @Test func aNavigationCancelsTheSortOfTheFolderLeft() async {
+        let listing = (0..<5_000).map { FileItem(url: URL(fileURLWithPath: "/big/file \($0).txt")) }
+        let model = BrowserModel(
+            location: URL(fileURLWithPath: "/big"),
+            fileSystem: FakeFileSystem(listings: ["/big": listing, "/fake": []]))
+        model.reload()
+        await model.loadTask?.value
+
+        model.sort.ascending = false
+        model.navigate(to: root)
+        await model.loadTask?.value
+        await model.arrangeTask?.value
+
+        #expect(model.items.isEmpty)
+        #expect(model.location == root)
+    }
 }

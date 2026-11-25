@@ -40,11 +40,11 @@
 - [x] Git states follow the whole working tree, not only the folder shown
 - [x] View > Folders First, remembered per folder
 - [x] Cut files are dimmed until they are pasted
+- [x] Re-sorting a folder of more than 2,000 entries no longer holds the main thread (76 ms before for 10,000 files, a few microseconds now)
 
 ## Next
 
-- [ ] Drop on tabs
-- [ ] Keep the main thread free when the user re-sorts a very large folder (76 ms for 10,000 files today)
+- [ ] Drop on tabs. The tabs are the system's own (see `docs/decisions/0002-native-window-tabs.md`) and AppKit offers no way to receive a drop on them: this needs either a custom tab bar or another gesture
 - [ ] Use the current settings as the default for folders never customized
 - [ ] Sign with a Developer ID and notarize (needs an Apple Developer account)
 - [ ] Review the French strings on a French system
