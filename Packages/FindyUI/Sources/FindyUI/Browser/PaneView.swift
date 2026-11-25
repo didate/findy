@@ -78,6 +78,7 @@ struct PaneView: View {
                 selection: model.selection,
                 sort: model.sort,
                 renamingURL: model.renamingURL,
+                gitChanges: model.gitChanges,
                 isActive: isActive,
                 onActivate: onActivate,
                 onSwitchPane: onSwitchPane

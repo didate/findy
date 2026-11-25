@@ -92,26 +92,64 @@ import Testing
         #expect((space ?? 0) > 0)
     }
 
-    @Test func countsChangesAndCommitsAheadAndBehind() {
-        let status = """
-            # branch.oid 0bce7cb1f2a3b4c5d6e7f8091a2b3c4d5e6f7081
-            # branch.head main
-            # branch.upstream origin/main
-            # branch.ab +2 -1
-            1 .M N... 100644 100644 100644 aaa bbb README.md
-            2 R. N... 100644 100644 100644 aaa bbb R100 new name.txt\told name.txt
-            u UU N... 100644 100644 100644 100644 aaa bbb ccc conflict.txt
-            ? été 🌞.txt
-            ! ignored.log
-            """
+    @Test func readsChangesStatesAndCommitsAheadAndBehind() {
+        let status =
+            [
+                "# branch.oid 0bce7cb1f2a3b4c5d6e7f8091a2b3c4d5e6f7081",
+                "# branch.head main",
+                "# branch.upstream origin/main",
+                "# branch.ab +2 -1",
+                "1 .M N... 100644 100644 100644 aaa bbb README.md",
+                "1 A. N... 000000 100644 100644 aaa bbb src/deep/new file.swift",
+                "1 .D N... 100644 100644 000000 aaa bbb gone.txt",
+                "2 R. N... 100644 100644 100644 aaa bbb R100 new name.txt",
+                "1 old name.txt",
+                "u UU N... 100644 100644 100644 100644 aaa bbb ccc conflict.txt",
+                "? été 🌞/",
+                "! build/",
+            ].joined(separator: "\0") + "\0"
 
         let changes = GitStatusReader.parse(status)
 
-        #expect(changes == GitChanges(changedFiles: 4, ahead: 2, behind: 1))
+        #expect(changes.changedFiles == 6)
+        #expect(changes.ahead == 2)
+        #expect(changes.behind == 1)
+        #expect(changes.state(forRelativePath: "README.md") == .modified)
+        #expect(changes.state(forRelativePath: "src/deep/new file.swift") == .added)
+        #expect(changes.state(forRelativePath: "gone.txt") == .deleted)
+        #expect(changes.state(forRelativePath: "new name.txt") == .renamed)
+        // The old path of a rename is not an entry of its own, even when it looks like one.
+        #expect(changes.state(forRelativePath: "old name.txt") == nil)
+        #expect(changes.state(forRelativePath: "conflict.txt") == .conflicted)
+        #expect(changes.state(forRelativePath: "LICENSE") == nil)
+    }
+
+    @Test func foldersTellWhatIsBelowThem() {
+        let changes = GitChanges(
+            changedFiles: 2,
+            states: ["src/deep/a.swift": .modified, "new/": .untracked, "build/": .ignored, "docs/out/": .ignored])
+
+        #expect(changes.state(forRelativePath: "src") == .containsChanges)
+        #expect(changes.state(forRelativePath: "src/deep") == .containsChanges)
+        #expect(changes.state(forRelativePath: "src/other.swift") == nil)
+        // What is inside an untracked or ignored folder shares its state.
+        #expect(changes.state(forRelativePath: "new") == .untracked)
+        #expect(changes.state(forRelativePath: "new/sub/file.txt") == .untracked)
+        #expect(changes.state(forRelativePath: "build/Debug/app") == .ignored)
+        // An ignored folder does not make its parent look changed.
+        #expect(changes.state(forRelativePath: "docs") == nil)
+    }
+
+    @Test func matchesNamesWhateverTheirUnicodeForm() {
+        let composed = "caf\u{E9}.txt"
+        let decomposed = "cafe\u{301}.txt"
+        let changes = GitChanges(changedFiles: 1, states: [composed: .modified])
+
+        #expect(changes.state(forRelativePath: decomposed) == .modified)
     }
 
     @Test func aBranchWithoutUpstreamHasNoAheadOrBehind() {
-        let changes = GitStatusReader.parse("# branch.oid (initial)\n# branch.head main\n")
+        let changes = GitStatusReader.parse("# branch.oid (initial)\0# branch.head main\0")
 
         #expect(changes == GitChanges(changedFiles: 0))
     }
@@ -135,7 +173,8 @@ import Testing
         let changes = await LocalFileSystem().gitChanges(inRepositoryAt: root)
         let outside = await LocalFileSystem().gitChanges(inRepositoryAt: URL(filePath: "/"))
 
-        #expect(changes == GitChanges(changedFiles: 2))
+        #expect(changes?.changedFiles == 2)
+        #expect(changes?.state(forRelativePath: "new file.txt") == .untracked)
         #expect(outside == nil)
     }
 }

@@ -211,6 +211,16 @@
         }
       }
     },
+    "Added" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouté"
+          }
+        }
+      }
+    },
     "An item named “%@” already exists in this location." : {
       "localizations" : {
         "fr" : {
@@ -287,6 +297,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Éditeur de code :"
+          }
+        }
+      }
+    },
+    "Conflict" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conflit"
+          }
+        }
+      }
+    },
+    "Contains changes" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contient des modifications"
           }
         }
       }
@@ -531,6 +561,16 @@
         }
       }
     },
+    "Modified" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifié"
+          }
+        }
+      }
+    },
     "Move" : {
       "localizations" : {
         "fr" : {
@@ -741,6 +781,16 @@
         }
       }
     },
+    "Renamed" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renommé"
+          }
+        }
+      }
+    },
     "Replace" : {
       "localizations" : {
         "fr" : {
@@ -877,6 +927,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "dossier sans titre"
+          }
+        }
+      }
+    },
+    "Untracked" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non suivi"
           }
         }
       }

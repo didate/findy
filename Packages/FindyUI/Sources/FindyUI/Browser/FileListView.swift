@@ -14,6 +14,8 @@ struct FileListView: NSViewRepresentable {
     let selection: Set<URL>
     let sort: FileSort
     let renamingURL: URL?
+    /// Passed so the badges are redrawn when Git reports something new.
+    let gitChanges: GitChanges?
     let isActive: Bool
     let onActivate: () -> Void
     let onSwitchPane: () -> Void
@@ -115,6 +117,7 @@ struct FileListView: NSViewRepresentable {
         /// True while the coordinator pushes model state into the table, so the table's delegate
         /// callbacks are not mistaken for user actions and echoed back to the model.
         private var isApplying = false
+        private var gitChanges: GitChanges?
         private var wasActive = true
         /// The entry whose name is being edited in place, and its text field.
         private var editing: (url: URL, field: NSTextField)?
@@ -187,6 +190,12 @@ struct FileListView: NSViewRepresentable {
             } else if selectedURLs(in: tableView) != selection {
                 select(selection, in: tableView)
             }
+            if gitChanges != model.gitChanges {
+                gitChanges = model.gitChanges
+                // Only the names carry Git states. Reloading that column keeps the selection.
+                tableView.reloadData(
+                    forRowIndexes: IndexSet(integersIn: 0..<items.count), columnIndexes: IndexSet(integer: 0))
+            }
         }
 
         private func select(_ selection: Set<URL>, in tableView: NSTableView) {
@@ -228,8 +237,12 @@ struct FileListView: NSViewRepresentable {
                     loadIcon(for: item, in: tableView)
                 }
                 // Hidden entries are dimmed, as in Finder.
-                cell.textField?.textColor = item.isHidden ? .secondaryLabelColor : .labelColor
-                cell.imageView?.alphaValue = item.isHidden ? 0.5 : 1
+                // So are the entries Git ignores: build products, dependencies.
+                let state = model.gitState(of: item)
+                let isDimmed = item.isHidden || state == .ignored
+                cell.textField?.textColor = isDimmed ? .secondaryLabelColor : .labelColor
+                cell.imageView?.alphaValue = isDimmed ? 0.5 : 1
+                (cell as? FileNameCellView)?.show(state.flatMap(GitBadge.init))
             case .dateModified:
                 cell.textField?.stringValue = item.modificationDate.map(dateFormatter.string(from:)) ?? "—"
             case .size:
@@ -495,7 +508,7 @@ struct FileListView: NSViewRepresentable {
             if let reused = tableView.makeView(withIdentifier: column.identifier, owner: nil) as? NSTableCellView {
                 return reused
             }
-            let cell = NSTableCellView()
+            let cell = column == .name ? FileNameCellView() : NSTableCellView()
             cell.identifier = column.identifier
 
             let textField = NSTextField(labelWithString: "")
@@ -525,9 +538,26 @@ struct FileListView: NSViewRepresentable {
                 textField.font = .monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
                 if column == .size { textField.alignment = .right }
             }
+            var trailing = cell.trailingAnchor
+            if let nameCell = cell as? FileNameCellView {
+                let badge = nameCell.badgeField
+                badge.translatesAutoresizingMaskIntoConstraints = false
+                badge.font = .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold)
+                badge.alignment = .center
+                // The badge keeps its width; a long name is the one that gets truncated.
+                badge.setContentHuggingPriority(.required, for: .horizontal)
+                badge.setContentCompressionResistancePriority(.required, for: .horizontal)
+                textField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+                cell.addSubview(badge)
+                NSLayoutConstraint.activate([
+                    badge.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -6),
+                    badge.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+                ])
+                trailing = badge.leadingAnchor
+            }
             NSLayoutConstraint.activate([
                 textField.leadingAnchor.constraint(equalTo: leading, constant: spacing),
-                textField.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -4),
+                textField.trailingAnchor.constraint(equalTo: trailing, constant: -4),
                 textField.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
             ])
             return cell

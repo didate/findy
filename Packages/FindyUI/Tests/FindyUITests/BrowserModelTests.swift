@@ -33,7 +33,9 @@ private struct FakeFileSystem: FileSystemProviding {
     func gitInfo(for directory: URL) async -> GitInfo? { git[directory.path] }
 
     func gitChanges(inRepositoryAt root: URL) async -> GitChanges? {
-        git[root.path] == nil ? nil : GitChanges(changedFiles: 3, ahead: 1, behind: 0)
+        git[root.path] == nil
+            ? nil
+            : GitChanges(changedFiles: 3, ahead: 1, behind: 0, states: ["Sub/deep.txt": .modified, "a.txt": .added])
     }
 
     func availableSpace(at directory: URL) async -> Int64? { 1_000 }
@@ -404,13 +406,20 @@ private struct FakeFileSystem: FileSystemProviding {
         await model.statusTask?.value
         #expect(model.gitInfo == info)
         #expect(model.availableSpace == 1_000)
-        #expect(model.gitChanges == GitChanges(changedFiles: 3, ahead: 1, behind: 0))
+        #expect(model.gitChanges?.changedFiles == 3)
+        #expect(model.gitChanges?.ahead == 1)
+        #expect(model.gitState(of: FileItem(url: URL(fileURLWithPath: "/fake/a.txt"))) == .added)
+        // The same entry, spelled the way the system sometimes returns it.
+        #expect(model.gitState(of: FileItem(url: URL(fileURLWithPath: "/private/fake/a.txt"))) == .added)
+        #expect(model.gitState(of: FileItem(url: sub, isDirectory: true)) == .containsChanges)
+        #expect(model.gitState(of: FileItem(url: URL(fileURLWithPath: "/fake/b.txt"))) == nil)
 
         // Leaving the repository drops the branch.
         model.navigate(to: sub)
         await model.statusTask?.value
         #expect(model.gitInfo == nil)
         #expect(model.gitChanges == nil)
+        #expect(model.gitState(of: FileItem(url: URL(fileURLWithPath: "/fake/a.txt"))) == nil)
     }
 
     @Test func addsUpTheSizeOfTheSelection() async {

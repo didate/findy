@@ -19,6 +19,7 @@ A free, open-source, native file manager for macOS. It runs alongside Finder and
 - Open in Terminal (⌥⌘T) on the current or the selected folder, in the terminal app of your choice
 - Open in Editor (⌥⌘E): the selection, or the current folder as a project, in VS Code, Cursor, Zed, Xcode and others
 - Status bar with the item count, the selection size, the free space, the current Git branch and how many files changed
+- Git state of each file in the list (modified, added, untracked…), with ignored files dimmed
 - Copy Path (⌥⌘C)
 - The list follows changes on disk
 - English and French

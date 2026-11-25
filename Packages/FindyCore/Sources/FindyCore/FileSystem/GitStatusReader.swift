@@ -29,7 +29,7 @@ enum GitStatusReader {
         // `--no-optional-locks`: a plain `git status` rewrites the index, which would get in the
         // way of the user's own Git commands and wake up whoever watches the repository, Findy included.
         running.process.arguments = [
-            "--no-optional-locks", "-C", root.path, "status", "--porcelain=v2", "--branch",
+            "--no-optional-locks", "-C", root.path, "status", "--porcelain=v2", "--branch", "--ignored", "-z",
         ]
         running.process.standardOutput = output
         running.process.standardError = FileHandle.nullDevice
@@ -51,23 +51,54 @@ enum GitStatusReader {
         }
     }
 
-    /// Porcelain v2: `# branch.ab +<ahead> -<behind>` when there is an upstream, then one line
-    /// per changed path, starting with `1`, `2` (renamed), `u` (conflict) or `?` (untracked).
+    /// Porcelain v2 with `-z`: records end with NUL and paths are given as they are, unquoted.
+    /// `# branch.ab +<ahead> -<behind>` appears when there is an upstream. Then one record per
+    /// path: `1` (changed), `2` (renamed, followed by one more record holding the old path),
+    /// `u` (conflict), `?` (untracked) or `!` (ignored).
     static func parse(_ status: String) -> GitChanges {
         var changed = 0
         var ahead: Int?
         var behind: Int?
-        for line in status.split(whereSeparator: \.isNewline) {
-            if line.hasPrefix("# branch.ab ") {
-                let counts = line.dropFirst("# branch.ab ".count).split(separator: " ")
+        var states: [String: GitFileState] = [:]
+        var records = status.split(separator: "\0", omittingEmptySubsequences: true).makeIterator()
+        while let record = records.next() {
+            if record.hasPrefix("# branch.ab ") {
+                let counts = record.dropFirst("# branch.ab ".count).split(separator: " ")
                 if counts.count == 2 {
                     ahead = Int(counts[0].dropFirst())
                     behind = Int(counts[1].dropFirst())
                 }
-            } else if line.hasPrefix("1 ") || line.hasPrefix("2 ") || line.hasPrefix("u ") || line.hasPrefix("? ") {
+            } else if record.hasPrefix("1 ") || record.hasPrefix("2 ") {
+                let isRename = record.hasPrefix("2 ")
+                // The path comes last and may contain spaces: only the fields before it are split.
+                let fields = record.split(separator: " ", maxSplits: isRename ? 9 : 8)
+                if isRename { _ = records.next() }
+                guard fields.count == (isRename ? 10 : 9), let path = fields.last else { continue }
+                let codes = fields[1]
+                let state: GitFileState =
+                    if isRename {
+                        .renamed
+                    } else if codes.contains("D") {
+                        .deleted
+                    } else if codes.hasPrefix("A") {
+                        .added
+                    } else {
+                        .modified
+                    }
+                states[String(path)] = state
                 changed += 1
+            } else if record.hasPrefix("u ") {
+                let fields = record.split(separator: " ", maxSplits: 10)
+                guard fields.count == 11, let path = fields.last else { continue }
+                states[String(path)] = .conflicted
+                changed += 1
+            } else if record.hasPrefix("? ") {
+                states[String(record.dropFirst(2))] = .untracked
+                changed += 1
+            } else if record.hasPrefix("! ") {
+                states[String(record.dropFirst(2))] = .ignored
             }
         }
-        return GitChanges(changedFiles: changed, ahead: ahead, behind: behind)
+        return GitChanges(changedFiles: changed, ahead: ahead, behind: behind, states: states)
     }
 }

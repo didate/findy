@@ -309,6 +309,16 @@ public final class BrowserModel: Identifiable {
         FilePasteboard.write(text: pathsForClipboard)
     }
 
+    /// What Git says about an entry of the list. `nil` outside a repository, and for a tracked
+    /// entry that did not change.
+    public func gitState(of item: FileItem) -> GitFileState? {
+        guard let gitChanges, let root = gitInfo?.root, location.path.hasPrefix(root.path) else { return nil }
+        // Built from the folder shown, not from the entry's own URL: the system may spell the
+        // latter `/private/tmp/…` when the repository was found under `/tmp/…` (macOS 26.3).
+        let folder = location.path.dropFirst(root.path.count).drop { $0 == "/" }
+        return gitChanges.state(forRelativePath: folder.isEmpty ? item.name : "\(folder)/\(item.name)")
+    }
+
     /// Reads the Git branch and the free space again. Both are cheap, and both go stale: a copy
     /// eats space, a checkout changes the branch.
     func refreshStatus() {
