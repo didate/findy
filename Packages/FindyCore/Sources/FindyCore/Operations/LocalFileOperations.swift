@@ -2,7 +2,17 @@ import Foundation
 
 /// `FileOperating` on the real disk.
 public struct LocalFileOperations: FileOperating {
-    public init() {}
+    /// Whether a copy within a volume may share its data with the original (an APFS clone).
+    private let clonesWhenPossible: Bool
+
+    public init() {
+        clonesWhenPossible = true
+    }
+
+    /// For tests, which need real bytes to be written to observe progress and cancellation.
+    init(clonesWhenPossible: Bool) {
+        self.clonesWhenPossible = clonesWhenPossible
+    }
 
     public func createFolder(in directory: URL, named name: String) async throws -> URL {
         try Self.validate(name)
@@ -35,20 +45,41 @@ public struct LocalFileOperations: FileOperating {
         return trashed
     }
 
-    public func move(_ url: URL, to destination: URL) async throws {
+    public func move(
+        _ url: URL, to destination: URL, onBytesCopied: (@Sendable (Int64) -> Void)?
+    ) async throws {
         try Self.checkDestination(destination, forSource: url)
+        try Task.checkCancellation()
         if Self.isOnSameVolume(url, as: destination.deletingLastPathComponent()) {
             try FileManager.default.moveItem(at: url, to: destination)
         } else {
-            try Self.copyAtomically(url, to: destination)
+            try copyAtomically(url, to: destination, onBytesCopied: onBytesCopied)
+            // The copy is complete: from here the move is carried through, cancelled or not.
             try FileManager.default.removeItem(at: url)
         }
     }
 
-    public func copy(_ url: URL, to destination: URL) async throws {
+    public func copy(
+        _ url: URL, to destination: URL, onBytesCopied: (@Sendable (Int64) -> Void)?
+    ) async throws {
         try Self.checkDestination(destination, forSource: url)
         try Task.checkCancellation()
-        try Self.copyAtomically(url, to: destination)
+        try copyAtomically(url, to: destination, onBytesCopied: onBytesCopied)
+    }
+
+    public func totalSize(of urls: [URL]) async -> Int64 {
+        var total: Int64 = 0
+        for url in urls {
+            if Task.isCancelled { break }
+            var info = stat()
+            guard lstat(url.path, &info) == 0 else { continue }
+            if info.st_mode & S_IFMT == S_IFDIR {
+                total += (try? await LocalFileSystem().directorySize(of: url)) ?? 0
+            } else if info.st_mode & S_IFMT == S_IFREG {
+                total += Int64(info.st_size)
+            }
+        }
+        return total
     }
 
     public func itemExists(at url: URL) async -> Bool {
@@ -80,15 +111,18 @@ public struct LocalFileOperations: FileOperating {
 
     /// Copies under a temporary hidden name, then renames: the destination name only ever holds a
     /// complete copy. Symbolic links are copied as links, never followed.
-    private static func copyAtomically(_ source: URL, to destination: URL) throws {
+    private func copyAtomically(
+        _ source: URL, to destination: URL, onBytesCopied: (@Sendable (Int64) -> Void)?
+    ) throws {
         let partial = destination.deletingLastPathComponent()
             .appendingPathComponent(".findy-partial-\(UUID().uuidString)")
         do {
-            try FileManager.default.copyItem(at: source, to: partial)
+            try TreeCopier.copy(
+                from: source, to: partial, allowingClones: clonesWhenPossible, onBytesCopied: onBytesCopied)
             try FileManager.default.moveItem(at: partial, to: destination)
         } catch {
             // Best-effort cleanup of our own half-written copy; the error worth reporting is the
-            // one that interrupted the copy.
+            // one that interrupted the copy, or the cancellation.
             try? FileManager.default.removeItem(at: partial)
             throw error
         }

@@ -84,7 +84,15 @@ extension BrowserModel {
         refresh()
     }
 
+    /// Stops the operation in flight. What it already completed stays, and stays undoable; the
+    /// item it was working on is left as it was.
+    public func cancelOperation() {
+        operationTask?.cancel()
+    }
+
     func report(_ error: any Error) {
+        // The user asked for the stop: nothing to announce.
+        if error is CancellationError { return }
         alertMessage = ErrorMessage.text(for: error)
     }
 }

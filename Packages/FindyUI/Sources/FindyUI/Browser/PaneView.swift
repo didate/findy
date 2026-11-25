@@ -41,6 +41,11 @@ struct PaneView: View {
         } message: {
             Text(verbatim: model.alertMessage ?? "")
         }
+        .overlay(alignment: .bottom) {
+            if let progress = model.progress {
+                OperationProgressView(progress: progress) { model.cancelOperation() }
+            }
+        }
         .sheet(item: $model.pendingTransfer) { transfer in
             ConflictSheet(transfer: transfer) { model.resolveTransfer($0) }
         }

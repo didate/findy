@@ -44,13 +44,16 @@ struct FileActions: Sendable {
     }
 
     /// Moves each item to an exact destination. Undone by moving them back.
-    func move(_ moves: [Relocation], name: String) -> UndoStep {
+    /// `onBytesCopied` follows the data written by moves across volumes.
+    func move(
+        _ moves: [Relocation], name: String, onBytesCopied: (@Sendable (Int64) -> Void)? = nil
+    ) -> UndoStep {
         UndoStep(name: name) {
             var moved: [Relocation] = []
             var failure: (any Error)?
             for item in moves {
                 do {
-                    try await operations.move(item.source, to: item.destination)
+                    try await operations.move(item.source, to: item.destination, onBytesCopied: onBytesCopied)
                     moved.append(item)
                 } catch {
                     failure = error
@@ -63,13 +66,15 @@ struct FileActions: Sendable {
     }
 
     /// Copies each item to an exact destination. Undone by trashing the copies, never by deleting.
-    func copy(_ copies: [Relocation], name: String) -> UndoStep {
+    func copy(
+        _ copies: [Relocation], name: String, onBytesCopied: (@Sendable (Int64) -> Void)? = nil
+    ) -> UndoStep {
         UndoStep(name: name) {
             var copied: [URL] = []
             var failure: (any Error)?
             for item in copies {
                 do {
-                    try await operations.copy(item.source, to: item.destination)
+                    try await operations.copy(item.source, to: item.destination, onBytesCopied: onBytesCopied)
                     copied.append(item.destination)
                 } catch {
                     failure = error

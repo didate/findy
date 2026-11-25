@@ -282,6 +282,71 @@ import Testing
         }
     }
 
+    // MARK: Progress and cancellation
+
+    /// Collects the byte counts a copy reports.
+    private final class ByteLog: @unchecked Sendable {
+        // Safe: `copyfile` calls back on one thread, and the test reads after the copy returned.
+        var deltas: [Int64] = []
+    }
+
+    @Test func reportsEveryByteItWrites() async throws {
+        try await withScratchDirectory { directory in
+            let folder = directory.appendingPathComponent("Folder", isDirectory: true)
+            try fileManager.createDirectory(
+                at: folder.appendingPathComponent("deep"), withIntermediateDirectories: true)
+            try Data(count: 3_000_000).write(to: folder.appendingPathComponent("a.bin"))
+            try Data(count: 1_500_000).write(to: folder.appendingPathComponent("deep/b.bin"))
+            try Data().write(to: folder.appendingPathComponent("empty"))
+            let log = ByteLog()
+
+            // Without clones, so that data is really written.
+            try await LocalFileOperations(clonesWhenPossible: false)
+                .copy(folder, to: directory.appendingPathComponent("Copy")) { log.deltas.append($0) }
+
+            #expect(log.deltas.reduce(0, +) == 4_500_000)
+            #expect(log.deltas.allSatisfy { $0 > 0 })
+            #expect(try names(in: directory.appendingPathComponent("Copy")) == ["a.bin", "deep", "empty"])
+        }
+    }
+
+    @Test func aCopyCancelledMidFileLeavesNothingBehind() async throws {
+        try await withScratchDirectory { directory in
+            let source = directory.appendingPathComponent("big.bin")
+            let destination = directory.appendingPathComponent("copy.bin")
+            try Data(count: 64_000_000).write(to: source)
+            let log = ByteLog()
+
+            let task = Task {
+                try await LocalFileOperations(clonesWhenPossible: false).copy(source, to: destination) { delta in
+                    log.deltas.append(delta)
+                    // Cancel from inside the copy, as soon as the first bytes are written.
+                    withUnsafeCurrentTask { $0?.cancel() }
+                }
+            }
+
+            await #expect(throws: CancellationError.self) { try await task.value }
+            // It stopped early, and neither the copy nor a partial file is left.
+            #expect(log.deltas.reduce(0, +) < 64_000_000)
+            #expect(try names(in: directory) == ["big.bin"])
+        }
+    }
+
+    @Test func measuresWhatACopyWouldWrite() async throws {
+        try await withScratchDirectory { directory in
+            let folder = directory.appendingPathComponent("Folder", isDirectory: true)
+            try fileManager.createDirectory(
+                at: folder.appendingPathComponent("deep"), withIntermediateDirectories: true)
+            try Data(count: 100).write(to: folder.appendingPathComponent("deep/a.bin"))
+            let file = directory.appendingPathComponent("b.bin")
+            try Data(count: 40).write(to: file)
+
+            let total = await operations.totalSize(of: [folder, file, directory.appendingPathComponent("ghost")])
+
+            #expect(total == 140)
+        }
+    }
+
     // MARK: Free names
 
     @Test func findsAFreeNameKeepingTheExtension() async throws {

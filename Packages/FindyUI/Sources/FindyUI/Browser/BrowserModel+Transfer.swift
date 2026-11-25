@@ -91,14 +91,37 @@ extension BrowserModel {
         }
         guard !relocations.isEmpty else { return }
 
+        // Progress: the copy adds up its bytes on its own thread and the bar samples the count.
+        // The total is measured alongside, so the copy does not wait for it.
+        progress = OperationProgress(isMove: transfer.isMove)
+        let counter = ByteCounter()
+        let sampling = Task {
+            while !Task.isCancelled {
+                progress?.completedBytes = counter.value
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+        }
+        let measuring = Task { [operations] in
+            let total = await operations.totalSize(of: relocations.map(\.source))
+            if !Task.isCancelled { progress?.totalBytes = total }
+        }
+        let onBytesCopied: @Sendable (Int64) -> Void = { counter.add($0) }
+
         let name = transfer.isMove ? ActionName.move : ActionName.copy
         var steps: [UndoStep] = []
         // Replaced items go to the Trash first, so undo can bring them back.
         if !replaced.isEmpty { steps.append(actions.trash(replaced, name: name)) }
-        steps.append(transfer.isMove ? actions.move(relocations, name: name) : actions.copy(relocations, name: name))
+        steps.append(
+            transfer.isMove
+                ? actions.move(relocations, name: name, onBytesCopied: onBytesCopied)
+                : actions.copy(relocations, name: name, onBytesCopied: onBytesCopied))
         let step = steps.count == 1 ? steps[0] : actions.sequence(steps, name: name)
 
-        if let error = await history.perform(step) { report(error) }
+        let failure = await history.perform(step)
+        sampling.cancel()
+        measuring.cancel()
+        progress = nil
+        if let failure { report(failure) }
         // Only select the results if the user is still looking at the folder they arrived in.
         finish(selecting: location == directory ? relocations.map(\.destination) : [])
     }

@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ of %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ sur %@"
+          }
+        }
+      }
+    },
     "An item named “%@” already exists in this location." : {
       "localizations" : {
         "fr" : {
@@ -87,6 +97,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Copier vers l’autre panneau"
+          }
+        }
+      }
+    },
+    "Copying…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copie en cours…"
           }
         }
       }
@@ -301,6 +321,16 @@
         }
       }
     },
+    "Moving…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déplacement en cours…"
+          }
+        }
+      }
+    },
     "Name" : {
       "localizations" : {
         "fr" : {
@@ -507,6 +537,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Certains éléments existent déjà à cet emplacement."
+          }
+        }
+      }
+    },
+    "Stop" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrêter"
           }
         }
       }

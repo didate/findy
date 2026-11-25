@@ -1,8 +1,33 @@
-import FindyCore
 import Foundation
 import Testing
 
+@testable import FindyCore
 @testable import FindyUI
+
+/// Real operations, except that a copy writes a few bytes and then never finishes on its own.
+private struct StallingOperations: FileOperating {
+    let real = LocalFileOperations()
+
+    func copy(_ url: URL, to destination: URL, onBytesCopied: (@Sendable (Int64) -> Void)?) async throws {
+        onBytesCopied?(10)
+        try await Task.sleep(for: .seconds(60))
+    }
+
+    func move(_ url: URL, to destination: URL, onBytesCopied: (@Sendable (Int64) -> Void)?) async throws {
+        try await real.move(url, to: destination, onBytesCopied: onBytesCopied)
+    }
+
+    func totalSize(of urls: [URL]) async -> Int64 { 40 }
+    func createFolder(in directory: URL, named name: String) async throws -> URL {
+        try await real.createFolder(in: directory, named: name)
+    }
+    func rename(_ url: URL, to newName: String) async throws -> URL { try await real.rename(url, to: newName) }
+    func trash(_ url: URL) async throws -> URL { try await real.trash(url) }
+    func itemExists(at url: URL) async -> Bool { await real.itemExists(at: url) }
+    func availableURL(for name: String, in directory: URL, keepingExtension: Bool) async -> URL {
+        await real.availableURL(for: name, in: directory, keepingExtension: keepingExtension)
+    }
+}
 
 /// Operations of a pane, run against real files in a scratch directory.
 @MainActor
@@ -293,6 +318,50 @@ import Testing
 
             #expect(names(in: source) == ["one.txt", "two.txt"])
             #expect(model.alertMessage?.contains("Source") == true)
+        }
+    }
+
+    // MARK: Progress and cancellation
+
+    @Test func showsProgressAndStopsWhenAsked() async throws {
+        let directory = fileManager.temporaryDirectory.resolvingSymlinksInPath()
+            .appendingPathComponent("FindyUITests-\(UUID().uuidString)", isDirectory: true)
+        let source = directory.appendingPathComponent("Source", isDirectory: true)
+        try fileManager.createDirectory(at: source, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: directory) }
+        try Data("x".utf8).write(to: source.appendingPathComponent("slow.bin"))
+        let model = BrowserModel(
+            location: directory, operations: StallingOperations(), calculatesFolderSizes: false
+        ) { _ in }
+
+        model.transfer([source.appendingPathComponent("slow.bin")], move: false)
+        let deadline = ContinuousClock.now + .seconds(5)
+        while model.progress?.totalBytes == nil || model.progress?.completedBytes == 0,
+            ContinuousClock.now < deadline
+        {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(model.progress == OperationProgress(isMove: false, completedBytes: 10, totalBytes: 40))
+        #expect(model.progress?.fraction == 0.25)
+        #expect(model.isBusy)
+
+        model.cancelOperation()
+        await settle(model)
+
+        #expect(model.progress == nil)
+        #expect(!model.isBusy)
+        // Stopping is the user's choice: no error is shown and there is nothing to undo.
+        #expect(model.alertMessage == nil)
+        #expect(model.history.undoName == nil)
+    }
+
+    @Test func aFinishedCopyLeavesNoProgressBehind() async throws {
+        try await withTransferSetup { model, source, destination in
+            model.transfer([source.appendingPathComponent("one.txt")], move: false)
+            await settle(model)
+
+            #expect(model.progress == nil)
+            #expect(names(in: destination) == ["one.txt"])
         }
     }
 

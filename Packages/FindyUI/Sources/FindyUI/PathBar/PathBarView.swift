@@ -50,7 +50,8 @@ struct PathBarView: View {
                 crumbRow(Array(model.crumbs.suffix(1)), truncated: true)
             }
             Spacer(minLength: 0)
-            if model.isBusy {
+            // A copy or a move shows its own progress panel.
+            if model.isBusy, model.progress == nil {
                 ProgressView()
                     .controlSize(.small)
                     .accessibilityLabel(Text("Working…", bundle: .module))

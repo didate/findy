@@ -70,6 +70,9 @@ public final class BrowserModel: Identifiable {
     /// A failure to tell the user about. Cleared when they dismiss it.
     public var alertMessage: String?
 
+    /// How far the running copy or move has got. `nil` when none is running.
+    public internal(set) var progress: OperationProgress?
+
     /// True while an operation on files is running.
     public internal(set) var isBusy = false
 
@@ -313,7 +316,11 @@ public final class BrowserModel: Identifiable {
         let folder = location
         let settings = FolderSettings(sort: sort, showsHiddenFiles: showsHiddenFiles)
         settingsLocation = folder
+        // Saves are chained: two changes in a row must reach the database in the order they were
+        // made, or the older one could land last and win.
+        let previous = settingsTask
         settingsTask = Task {
+            await previous?.value
             do {
                 try await settingsStore.save(settings, for: folder)
             } catch {
