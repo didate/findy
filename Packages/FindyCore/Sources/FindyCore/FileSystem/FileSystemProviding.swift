@@ -13,6 +13,13 @@ public protocol FileSystemProviding: Sendable {
     /// skipped, and hidden entries are left out unless `includingHidden` is set.
     func search(in directory: URL, matching query: String, includingHidden: Bool) -> AsyncStream<[FileItem]>
 
+    /// Finds the files and folders marked with `label`, wherever they are on this Mac. Results
+    /// arrive in batches, in no particular order, until the consumer stops iterating.
+    ///
+    /// The answer comes from the system's index (Spotlight): a volume that is not indexed gives
+    /// nothing, and a label set a moment ago can take a few seconds to show up.
+    func items(labeled label: FileLabel) -> AsyncStream<[FileItem]>
+
     /// Reads what Get Info shows about `url`. One entry at a time: this is not for listings.
     func details(of url: URL) async throws -> FileDetails
 

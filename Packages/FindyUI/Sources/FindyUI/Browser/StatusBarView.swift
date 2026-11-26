@@ -12,7 +12,7 @@ struct StatusBarView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: 8)
-            if let git = model.gitInfo {
+            if model.shownLabel == nil, let git = model.gitInfo {
                 if let changes = model.gitChanges { changesView(changes) }
                 Label {
                     Text(verbatim: git.head)
@@ -65,7 +65,10 @@ struct StatusBarView: View {
             parts.append(String(localized: "\(model.items.count) items", bundle: .module))
         }
         if model.searchIsTruncated {
-            parts.append(String(localized: "search stopped there, refine it to see more", bundle: .module))
+            parts.append(
+                model.shownLabel == nil
+                    ? String(localized: "search stopped there, refine it to see more", bundle: .module)
+                    : String(localized: "only the first ones are shown", bundle: .module))
         }
         // A result can come from any depth: say where the selected one is.
         if let folder = model.selectedResultFolder {

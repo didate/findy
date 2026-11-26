@@ -5,8 +5,13 @@ import Foundation
 extension BrowserModel {
     var actions: FileActions { FileActions(operations: operations) }
 
+    /// Whether the list shows a folder, where something can be created or pasted. Not so for the
+    /// files of a color, which come from anywhere.
+    public var canCreateHere: Bool { shownLabel == nil }
+
     /// Creates a folder here, selects it and starts renaming it, as Finder does.
     public func newFolder() {
+        guard canCreateHere else { return }
         let directory = location
         start {
             do {
@@ -23,6 +28,7 @@ extension BrowserModel {
 
     /// Creates an empty file here, selects it and starts renaming it.
     public func newFile() {
+        guard canCreateHere else { return }
         let directory = location
         start {
             do {

@@ -46,7 +46,7 @@ extension BrowserModel {
     /// already taken, nothing happens yet: `pendingTransfer` is set and the user decides with
     /// `resolveTransfer`.
     public func transfer(_ urls: [URL], move: Bool, into directory: URL? = nil) {
-        guard !urls.isEmpty else { return }
+        guard !urls.isEmpty, directory != nil || canCreateHere else { return }
         let directory = directory ?? location
         start {
             var conflicts: [URL] = []

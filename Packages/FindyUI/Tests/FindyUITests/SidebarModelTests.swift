@@ -30,6 +30,7 @@ private struct FakeLocations: FileSystemProviding {
     func search(in directory: URL, matching query: String, includingHidden: Bool) -> AsyncStream<[FileItem]> {
         AsyncStream { $0.finish() }
     }
+    func items(labeled label: FileLabel) -> AsyncStream<[FileItem]> { AsyncStream { $0.finish() } }
     func directorySize(of directory: URL) async throws -> Int64 { 0 }
     func changes(in directory: URL) -> AsyncStream<Void> { AsyncStream { $0.finish() } }
     func changes(under root: URL) -> AsyncStream<Void> { AsyncStream { $0.finish() } }

@@ -359,7 +359,7 @@ struct FileListView: NSViewRepresentable {
         ) -> NSDragOperation {
             let destination = dropDestination(in: tableView, row: row, dropOperation: dropOperation)
             let operation = Self.operation(for: info)
-            guard operation != [],
+            guard operation != [], acceptsDrop(in: destination),
                 model.canAccept(Self.fileURLs(in: info), in: destination, move: operation == .move)
             else { return [] }
             return operation
@@ -372,9 +372,9 @@ struct FileListView: NSViewRepresentable {
             let destination = dropDestination(in: tableView, row: row, dropOperation: dropOperation)
             let operation = Self.operation(for: info)
             let urls = Self.fileURLs(in: info)
-            guard operation != [], model.canAccept(urls, in: destination, move: operation == .move) else {
-                return false
-            }
+            guard operation != [], acceptsDrop(in: destination),
+                model.canAccept(urls, in: destination, move: operation == .move)
+            else { return false }
             parent.onActivate()
             model.transfer(urls, move: operation == .move, into: destination)
             return true
@@ -390,6 +390,12 @@ struct FileListView: NSViewRepresentable {
             }
             tableView.setDropRow(-1, dropOperation: .on)
             return model.location
+        }
+
+        /// Whether a drop outside a folder row has a folder to land in. The files of a color come
+        /// from anywhere: there is no folder behind that list.
+        private func acceptsDrop(in destination: URL) -> Bool {
+            model.shownLabel == nil || destination != model.location
         }
 
         /// A drag moves, and Option-drag copies, whatever the volumes involved. (Finder moves or

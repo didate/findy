@@ -35,7 +35,7 @@ public struct BrowserCommands: Commands {
                 Text("New Folder", bundle: .module)
             }
             .keyboardShortcut("n", modifiers: [.command, .shift])
-            .disabled(workspace == nil)
+            .disabled(workspace?.activePane.canCreateHere != true)
 
             Button {
                 workspace?.activePane.newFile()
@@ -43,7 +43,7 @@ public struct BrowserCommands: Commands {
                 Text("New File", bundle: .module)
             }
             .keyboardShortcut("n", modifiers: [.command, .option])
-            .disabled(workspace == nil)
+            .disabled(workspace?.activePane.canCreateHere != true)
 
             Divider()
 

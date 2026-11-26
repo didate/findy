@@ -1,3 +1,4 @@
+import FindyCore
 import SwiftUI
 
 /// Shows the current location as clickable segments, and turns into a text field to type a path (⌘L).
@@ -43,11 +44,20 @@ struct PathBarView: View {
     private var crumbs: some View {
         HStack(spacing: 2) {
             // Deep paths that do not fit keep their last segments, the ones the user is working in.
-            ViewThatFits(in: .horizontal) {
-                crumbRow(model.crumbs, truncated: false)
-                crumbRow(Array(model.crumbs.suffix(4)), truncated: true)
-                crumbRow(Array(model.crumbs.suffix(2)), truncated: true)
-                crumbRow(Array(model.crumbs.suffix(1)), truncated: true)
+            if let label = model.shownLabel {
+                // The files of a color come from anywhere: there is no path to show.
+                Label {
+                    Text("Everything marked \(label.name)", bundle: .module).lineLimit(1)
+                } icon: {
+                    Image(systemName: "circle.fill").foregroundStyle(Color(nsColor: label.color))
+                }
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    crumbRow(model.crumbs, truncated: false)
+                    crumbRow(Array(model.crumbs.suffix(4)), truncated: true)
+                    crumbRow(Array(model.crumbs.suffix(2)), truncated: true)
+                    crumbRow(Array(model.crumbs.suffix(1)), truncated: true)
+                }
             }
             Spacer(minLength: 0)
             // A copy or a move shows its own progress panel.

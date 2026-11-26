@@ -83,6 +83,34 @@ import Testing
         try URL(fileURLWithPath: url.path).resourceValues(forKeys: [.labelNumberKey]).labelNumber
     }
 
+    @Test func entriesNamedByTheIndexAreKeptOnlyWhenTheyStillCarryTheColor() async throws {
+        try await withScratchDirectory { directory in
+            let red = directory.appendingPathComponent("rouge 🔴.txt")
+            let green = directory.appendingPathComponent("vert.txt")
+            let gone = directory.appendingPathComponent("gone.txt")
+            try write("a", to: red)
+            try write("b", to: green)
+            try await operations.setLabel(.red, on: red)
+            try await operations.setLabel(.green, on: green)
+
+            // The index can still name a file whose color changed, or that was deleted since.
+            let items = LocalFileSystem.labeledItems(at: [red.path, green.path, gone.path], label: .red)
+
+            #expect(items.map(\.name) == ["rouge 🔴.txt"])
+            #expect(items.first?.label == .red)
+        }
+    }
+
+    @Test func theIndexIsAskedForTheLabelAndForTheFlagsOfALabeledFolder() {
+        let predicate = LabelQuery.predicate(for: .red)
+
+        #expect(predicate.hasPrefix("kMDItemFSLabel == 6 || "))
+        // Red is 6, held in bits 1 to 3 of the Finder flags: 12 alone, 1036 with a custom icon.
+        #expect(predicate.contains("kMDItemFSFinderFlags == 12 "))
+        #expect(predicate.contains("kMDItemFSFinderFlags == 1036"))
+        #expect(!predicate.contains("kMDItemFSFinderFlags == 6 "))
+    }
+
     @Test func marksAFileAndAFolderWithAColorAndRemovesIt() async throws {
         try await withScratchDirectory { directory in
             let file = directory.appendingPathComponent("été 🌞.txt")

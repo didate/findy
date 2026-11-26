@@ -3,9 +3,9 @@ import SwiftUI
 
 struct SidebarView: View {
     @Bindable var model: SidebarModel
-    /// The location shown in the browser, highlighted when it matches a row.
-    let location: URL
-    let onSelect: (URL) -> Void
+    /// What the browser shows, highlighted when it matches a row.
+    let shown: SidebarSelection
+    let onSelect: (SidebarSelection) -> Void
     /// Files were dropped on a row: the folder it stands for, the files, and whether to move them.
     let onDrop: (URL, [URL], Bool) -> Void
     /// The user asked to eject a volume.
@@ -18,7 +18,7 @@ struct SidebarView: View {
                     SidebarRow(name: favorite.name, systemImage: favorite.systemImage) { urls, move in
                         onDrop(favorite.url, urls, move)
                     }
-                    .tag(favorite.url)
+                    .tag(SidebarSelection.folder(favorite.url))
                     .contextMenu {
                         Button {
                             model.removeFavorite(favorite.url)
@@ -49,7 +49,7 @@ struct SidebarView: View {
                         urls, move in
                         onDrop(location.url, urls, move)
                     }
-                    .tag(location.url)
+                    .tag(SidebarSelection.folder(location.url))
                 }
                 ForEach(model.volumes) { volume in
                     HStack(spacing: 4) {
@@ -73,7 +73,7 @@ struct SidebarView: View {
                             .foregroundStyle(.secondary)
                         }
                     }
-                    .tag(volume.url.canonicalLocation)
+                    .tag(SidebarSelection.folder(volume.url.canonicalLocation))
                     .contextMenu {
                         if volume.isEjectable {
                             Button {
@@ -86,6 +86,18 @@ struct SidebarView: View {
                 }
             } header: {
                 Text("Locations", bundle: .module)
+            }
+            Section {
+                ForEach(FileLabel.menuOrder, id: \.self) { label in
+                    Label {
+                        Text(verbatim: label.name)
+                    } icon: {
+                        Image(systemName: "circle.fill").foregroundStyle(Color(nsColor: label.color))
+                    }
+                    .tag(SidebarSelection.label(label))
+                }
+            } header: {
+                Text("Tags", bundle: .module)
             }
         }
         .listStyle(.sidebar)
@@ -106,11 +118,11 @@ struct SidebarView: View {
         }
     }
 
-    private var selection: Binding<URL?> {
+    private var selection: Binding<SidebarSelection?> {
         Binding(
-            get: { location },
-            set: { url in
-                if let url { onSelect(url) }
+            get: { shown },
+            set: { selected in
+                if let selected { onSelect(selected) }
             }
         )
     }

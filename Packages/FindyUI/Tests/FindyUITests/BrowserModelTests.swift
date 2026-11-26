@@ -33,6 +33,17 @@ private struct FakeFileSystem: FileSystemProviding {
         }
     }
 
+    /// What carries each color, wherever it is.
+    var labeled: [FileLabel: [FileItem]] = [:]
+
+    func items(labeled label: FileLabel) -> AsyncStream<[FileItem]> {
+        let results = labeled[label] ?? []
+        return AsyncStream { continuation in
+            if !results.isEmpty { continuation.yield(results) }
+            continuation.finish()
+        }
+    }
+
     func contents(of directory: URL) async throws -> [FileItem] {
         guard let items = listings[directory.path] else { throw Unreadable() }
         return items
@@ -682,6 +693,65 @@ private struct FakeFileSystem: FileSystemProviding {
         #expect(model.items.isEmpty)
         #expect(model.showsSearchResults)
         #expect(!model.isSearchRunning)
+    }
+
+    private func labeledFileSystem() -> FakeFileSystem {
+        var fileSystem = makeFileSystem()
+        fileSystem.labeled[.red] = [
+            FileItem(url: URL(fileURLWithPath: "/elsewhere/deep/urgent.txt"), size: 1, label: .red),
+            FileItem(url: URL(fileURLWithPath: "/fake/Sub"), isDirectory: true, label: .red),
+        ]
+        return fileSystem
+    }
+
+    @Test func showsTheFilesOfAColorFromAnywhereAndGoesBackToTheFolder() async {
+        let model = BrowserModel(location: root, fileSystem: labeledFileSystem())
+        model.reload()
+        await model.loadTask?.value
+
+        model.showItems(labeled: .red)
+        await model.loadTask?.value
+        await model.searchTask?.value
+
+        #expect(model.shownLabel == .red)
+        #expect(model.showsSearchResults)
+        #expect(!model.isSearchRunning)
+        #expect(model.items.map(\.name) == ["Sub", "urgent.txt"])
+        #expect(!model.canGoUp)
+        #expect(!model.canCreateHere)
+        // The status bar says where the selected file is, with its whole path.
+        model.selection = [URL(fileURLWithPath: "/elsewhere/deep/urgent.txt")]
+        #expect(model.selectedResultFolder == "/elsewhere/deep")
+
+        model.goBack()
+        await model.loadTask?.value
+        #expect(model.shownLabel == nil)
+        #expect(model.items.map(\.name) == ["Sub", "a.txt", "b.txt"])
+
+        model.goForward()
+        await model.loadTask?.value
+        await model.searchTask?.value
+        #expect(model.shownLabel == .red)
+        #expect(model.items.map(\.name) == ["Sub", "urgent.txt"])
+    }
+
+    @Test func aColorWithNoFileShowsAnEmptyListAndLeavesWhenAFolderIsOpened() async {
+        let model = BrowserModel(location: root, fileSystem: labeledFileSystem())
+        model.reload()
+        await model.loadTask?.value
+
+        model.showItems(labeled: .blue)
+        await model.loadTask?.value
+        await model.searchTask?.value
+        #expect(model.items.isEmpty)
+        #expect(model.showsSearchResults)
+
+        // Going to the folder the pane was already in leaves the color.
+        model.navigate(to: root)
+        await model.loadTask?.value
+        #expect(model.shownLabel == nil)
+        #expect(model.items.map(\.name) == ["Sub", "a.txt", "b.txt"])
+        #expect(model.canGoBack)
     }
 
     @Test func navigatingAwayEndsTheSearch() async {

@@ -611,6 +611,16 @@
         }
       }
     },
+    "Everything marked %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout ce qui est marqué %@"
+          }
+        }
+      }
+    },
     "Favorites" : {
       "localizations" : {
         "fr" : {
@@ -981,6 +991,16 @@
         }
       }
     },
+    "only the first ones are shown" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "seuls les premiers sont affichés"
+          }
+        }
+      }
+    },
     "Open" : {
       "localizations" : {
         "fr" : {
@@ -1337,6 +1357,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Arrêter"
+          }
+        }
+      }
+    },
+    "Tags" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tags"
           }
         }
       }

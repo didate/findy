@@ -10,6 +10,9 @@ public final class BrowserModel: Identifiable {
     public nonisolated let id = UUID()
 
     public private(set) var location: URL
+    /// The color whose files the list shows, wherever they are, instead of the folder's content.
+    /// `nil` most of the time: the list shows `location`.
+    public private(set) var shownLabel: FileLabel?
     /// The entries to display, already filtered and sorted.
     public private(set) var items: [FileItem] = []
     public private(set) var isLoading = false
@@ -119,10 +122,11 @@ public final class BrowserModel: Identifiable {
     public private(set) var canGoBack = false
     public private(set) var canGoForward = false
 
-    public var canGoUp: Bool { location.path != "/" }
+    public var canGoUp: Bool { shownLabel == nil && location.path != "/" }
 
     public var title: String {
-        location.path == "/" ? "/" : location.lastPathComponent
+        if let shownLabel { return shownLabel.name }
+        return location.path == "/" ? "/" : location.lastPathComponent
     }
 
     /// The location split into segments, from the root down.
@@ -167,10 +171,16 @@ public final class BrowserModel: Identifiable {
     /// The listing without what is hidden, with folder sizes, in display order. `items` is this
     /// list narrowed by the filter, so typing a filter never sorts anything.
     private var arranged: [FileItem] = []
-    private var backStack: [URL] = [] {
+    /// One step of the history: a folder, or the files of a color seen from that folder.
+    private struct Place {
+        let url: URL
+        var label: FileLabel?
+    }
+    private var place: Place { Place(url: location, label: shownLabel) }
+    private var backStack: [Place] = [] {
         didSet { canGoBack = !backStack.isEmpty }
     }
-    private var forwardStack: [URL] = [] {
+    private var forwardStack: [Place] = [] {
         didSet { canGoForward = !forwardStack.isEmpty }
     }
     /// The listing in flight. Internal so tests can await it.
@@ -236,13 +246,24 @@ public final class BrowserModel: Identifiable {
 
     public func navigate(to url: URL) {
         let destination = url.canonicalLocation
-        guard destination != location else {
+        guard destination != location || shownLabel != nil else {
             reload()
             return
         }
-        backStack.append(location)
+        backStack.append(place)
         forwardStack.removeAll()
-        show(destination)
+        show(Place(url: destination))
+    }
+
+    /// Shows every file and folder marked with `label`, wherever it is on this Mac.
+    public func showItems(labeled label: FileLabel) {
+        guard label != shownLabel else {
+            reload()
+            return
+        }
+        backStack.append(place)
+        forwardStack.removeAll()
+        show(Place(url: location, label: label))
     }
 
     /// Navigates to a path typed by the user. `~` is expanded; anything that is not absolute is ignored.
@@ -255,13 +276,13 @@ public final class BrowserModel: Identifiable {
 
     public func goBack() {
         guard let previous = backStack.popLast() else { return }
-        forwardStack.append(location)
+        forwardStack.append(place)
         show(previous)
     }
 
     public func goForward() {
         guard let next = forwardStack.popLast() else { return }
-        backStack.append(location)
+        backStack.append(place)
         show(next)
     }
 
@@ -374,6 +395,8 @@ public final class BrowserModel: Identifiable {
 
     /// Shows the search bar, or gives it the focus again.
     public func beginSearch() {
+        // The files of a color are not a folder to search under.
+        guard shownLabel == nil else { return }
         isSearching = true
         searchFocusRequests += 1
     }
@@ -385,21 +408,27 @@ public final class BrowserModel: Identifiable {
     }
 
     /// The folder holding the only selected search result, relative to the folder shown. `nil`
-    /// outside a search, or when the result sits directly in the folder shown.
+    /// outside a search, or when the result sits directly in the folder shown. For the files of a
+    /// color, which come from anywhere, the whole path of the folder.
     public var selectedResultFolder: String? {
         guard showsSearchResults, selection.count == 1, let item = selectedItems.first else { return nil }
+        if shownLabel != nil {
+            return (item.url.deletingLastPathComponent().path as NSString).abbreviatingWithTildeInPath
+        }
         let folder = (pathInFolderShown(of: item) as NSString).deletingLastPathComponent
         return folder.isEmpty ? nil : folder
     }
 
-    /// Looks for `searchText` under the folder shown. A new query replaces the search in flight.
+    /// Looks for `searchText` under the folder shown, or for the files of `shownLabel`. A new
+    /// query replaces the search in flight.
     /// - Parameter keepingResults: leave the current results on screen until the new ones come,
     ///   for a search repeated because the disk or a setting changed.
     private func startSearch(keepingResults: Bool) {
         searchTask?.cancel()
         searchTask = nil
+        let label = shownLabel
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else {
+        guard label != nil || !query.isEmpty else {
             let wasShowingResults = searchResults != nil
             searchResults = nil
             isSearchRunning = false
@@ -415,12 +444,18 @@ public final class BrowserModel: Identifiable {
         let directory = location
         let includingHidden = showsHiddenFiles
         searchTask = Task { [fileSystem] in
-            // A word is typed in a burst: wait for the pause before walking the disk.
-            try? await Task.sleep(for: .milliseconds(150))
-            guard !Task.isCancelled else { return }
+            let results: AsyncStream<[FileItem]>
+            if let label {
+                results = fileSystem.items(labeled: label)
+            } else {
+                // A word is typed in a burst: wait for the pause before walking the disk.
+                try? await Task.sleep(for: .milliseconds(150))
+                guard !Task.isCancelled else { return }
+                results = fileSystem.search(in: directory, matching: query, includingHidden: includingHidden)
+            }
             var found: [FileItem] = []
             var isTruncated = false
-            for await batch in fileSystem.search(in: directory, matching: query, includingHidden: includingHidden) {
+            for await batch in results {
                 guard !Task.isCancelled else { return }
                 found += batch
                 if found.count >= Self.searchResultLimit {
@@ -472,6 +507,8 @@ public final class BrowserModel: Identifiable {
     /// What Git says about an entry of the list. `nil` outside a repository, and for a tracked
     /// entry that did not change.
     public func gitState(of item: FileItem) -> GitFileState? {
+        // The files of a color come from anywhere: the repository of the folder says nothing of them.
+        guard shownLabel == nil else { return nil }
         guard let gitChanges, let root = gitInfo?.root, location.path.hasPrefix(root.path) else { return nil }
         // Built from the folder shown, not from the entry's own URL: the system may spell the
         // latter `/private/tmp/…` when the repository was found under `/tmp/…` (macOS 26.3).
@@ -593,8 +630,13 @@ public final class BrowserModel: Identifiable {
             } catch {
                 guard !Task.isCancelled else { return }
                 allItems = []
-                errorMessage = error.localizedDescription
-                rebuildItems()
+                if shownLabel != nil {
+                    // The list shows the files of a color: the folder behind it does not matter.
+                    startSearch(keepingResults: true)
+                } else {
+                    errorMessage = error.localizedDescription
+                    rebuildItems()
+                }
             }
             applyPendingSelection()
             isLoading = false
@@ -706,8 +748,9 @@ public final class BrowserModel: Identifiable {
         }
     }
 
-    private func show(_ url: URL) {
-        location = url
+    private func show(_ place: Place) {
+        location = place.url
+        shownLabel = place.label
         // The previous folder's rows must not linger under the new title while the listing runs.
         arrangeTask?.cancel()
         arrangeTask = nil
@@ -730,6 +773,11 @@ public final class BrowserModel: Identifiable {
         renameAfterLoad = nil
         sizeTask?.cancel()
         sizeTask = nil
+        if place.label != nil {
+            // Shown before the listing below comes back: the folder's rows must never flash by.
+            searchResults = []
+            isSearchRunning = true
+        }
         reload()
     }
 

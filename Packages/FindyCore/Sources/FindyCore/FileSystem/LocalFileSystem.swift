@@ -43,6 +43,35 @@ public struct LocalFileSystem: FileSystemProviding {
         }
     }
 
+    public func items(labeled label: FileLabel) -> AsyncStream<[FileItem]> {
+        AsyncStream { continuation in
+            let task = Task.detached(priority: .userInitiated) {
+                let paths = LabelQuery.paths(labeled: label)
+                // Attributes are read 200 entries at a time, so the first rows show at once.
+                var start = 0
+                while start < paths.count, !Task.isCancelled {
+                    let end = min(start + 200, paths.count)
+                    continuation.yield(Self.labeledItems(at: paths[start..<end], label: label))
+                    start = end
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// Reads the entries the index named. The index can lag behind the disk: an entry that is
+    /// gone, or whose label was changed since, is left out.
+    static func labeledItems(at paths: some Sequence<String>, label: FileLabel) -> [FileItem] {
+        paths.compactMap { path in
+            let url = URL(filePath: path)
+            guard let values = try? url.resourceValues(forKeys: [.labelNumberKey]),
+                values.labelNumber == label.rawValue
+            else { return nil }
+            return makeItem(url)
+        }
+    }
+
     /// The search itself. Synchronous: a directory enumerator cannot be iterated from async code.
     /// It checks for cancellation at every entry, so a new query stops the old walk at once.
     private static func walk(

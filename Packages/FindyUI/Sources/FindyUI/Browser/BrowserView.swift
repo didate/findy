@@ -15,8 +15,11 @@ public struct BrowserView: View {
 
     public var body: some View {
         NavigationSplitView {
-            SidebarView(model: sidebar, location: workspace.activePane.location) { url in
-                workspace.activePane.navigate(to: url)
+            SidebarView(model: sidebar, shown: shownInSidebar) { selected in
+                switch selected {
+                case .folder(let url): workspace.activePane.navigate(to: url)
+                case .label(let label): workspace.activePane.showItems(labeled: label)
+                }
             } onDrop: { folder, urls, move in
                 workspace.activePane.drop(urls, into: folder, move: move)
             } onEject: { volume in
@@ -43,6 +46,11 @@ public struct BrowserView: View {
         .focusedSceneValue(\.workspace, workspace)
         .task { await sidebar.loadLocations() }
         .task { await sidebar.followVolumes() }
+    }
+
+    private var shownInSidebar: SidebarSelection {
+        let pane = workspace.activePane
+        return pane.shownLabel.map(SidebarSelection.label) ?? .folder(pane.location)
     }
 
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
