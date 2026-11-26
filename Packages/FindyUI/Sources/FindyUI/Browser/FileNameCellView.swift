@@ -1,11 +1,14 @@
 import AppKit
 import FindyCore
 
-/// The cell of the Name column: icon, name, and a Git badge at the trailing edge.
+/// The cell of the Name column: icon, name, the dot of the color label right after the name,
+/// and a Git badge at the trailing edge.
 final class FileNameCellView: NSTableCellView {
     let badgeField = NSTextField(labelWithString: "")
-    /// The dot of the color label, before the Git badge.
+    /// The dot of the color label, right after the name.
     let labelDot = NSImageView()
+    /// Stretches the name up to the Git badge. Active only while the name is being edited.
+    var editingWidth: NSLayoutConstraint?
     private var badgeColor: NSColor?
 
     func show(_ label: FileLabel?) {

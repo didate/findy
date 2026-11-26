@@ -613,6 +613,7 @@ struct FileListView: NSViewRepresentable {
                 return
             }
             editing = (url, field)
+            (cell as? FileNameCellView)?.editingWidth?.isActive = true
             field.isEditable = true
             field.drawsBackground = true
             field.backgroundColor = .textBackgroundColor
@@ -633,6 +634,7 @@ struct FileListView: NSViewRepresentable {
             editing = nil
             field.delegate = nil
             field.isEditable = false
+            (field.superview as? FileNameCellView)?.editingWidth?.isActive = false
             field.drawsBackground = false
             // Until the rename lands and the list refreshes, the row keeps showing the real name.
             field.stringValue = url.lastPathComponent
@@ -739,12 +741,18 @@ struct FileListView: NSViewRepresentable {
                 dot.setContentHuggingPriority(.required, for: .horizontal)
                 dot.setContentCompressionResistancePriority(.required, for: .horizontal)
                 cell.addSubview(dot)
+                // The dot follows the name, as in Finder, and the Git badge keeps the trailing edge
+                // to itself: the name is only as wide as its text, and the room left is empty.
+                textField.setContentHuggingPriority(.defaultHigh, for: .horizontal)
                 NSLayoutConstraint.activate([
                     badge.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -6),
                     badge.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
-                    dot.trailingAnchor.constraint(equalTo: badge.leadingAnchor, constant: -4),
+                    dot.trailingAnchor.constraint(lessThanOrEqualTo: badge.leadingAnchor, constant: -4),
                     dot.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
                 ])
+                // While the name is edited the field takes the whole width: a field as narrow as
+                // the old name would leave no room to type a longer one.
+                nameCell.editingWidth = dot.trailingAnchor.constraint(equalTo: badge.leadingAnchor, constant: -4)
                 trailing = dot.leadingAnchor
             }
             NSLayoutConstraint.activate([
