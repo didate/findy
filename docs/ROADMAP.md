@@ -45,7 +45,7 @@
 - [x] v0.2.0 and v0.2.1 published on GitHub and in the Homebrew tap
 - [x] Releases signed with a stable self-signed certificate, so macOS stops asking for the same permissions after each update
 
-## v0.3 (in progress)
+## v0.3
 
 - [x] Open With, in the context menu of a file
 - [x] Eject removable volumes, disk images and network shares from the sidebar; the sidebar follows volumes as they come and go
@@ -55,6 +55,7 @@
 - [x] Color labels: mark files and folders with one of Finder's seven colors (context menu and File menu), shown on the icon of a folder and as a dot after the name of a file, undoable, and shared with Finder
 - [x] Search by name in the folder shown and its subfolders (⌘F), with results arriving as they are found
 - [x] Tags in the sidebar: the seven colors, each showing every file and folder marked with it, wherever it is (answered by Spotlight, so only indexed volumes)
+- [x] v0.3.0 published on GitHub and in the Homebrew tap
 
 ## Next
 
