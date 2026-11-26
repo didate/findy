@@ -294,10 +294,13 @@ struct FileListView: NSViewRepresentable {
                 cell.textField?.stringValue = item.name
                 // Remembered so the row can tell which icon to stop loading when it scrolls away.
                 cell.objectValue = item.url as NSURL
+                let nameCell = cell as? FileNameCellView
+                // Before the icon: a folder wears its color on the icon itself.
+                nameCell?.show(item.label, onIcon: item.isDirectory && !item.isPackage)
                 if let loaded = loadedIcons[Self.iconKey(for: item)] {
-                    cell.imageView?.image = loaded
+                    nameCell?.setIcon(loaded)
                 } else {
-                    cell.imageView?.image = icon(for: item)
+                    nameCell?.setIcon(icon(for: item))
                     loadIcon(for: item, in: tableView)
                 }
                 // Hidden entries are dimmed, as in Finder.
@@ -307,8 +310,7 @@ struct FileListView: NSViewRepresentable {
                 let isDimmed = item.isHidden || state == .ignored || cutFiles.contains(item.url)
                 cell.textField?.textColor = isDimmed ? .secondaryLabelColor : .labelColor
                 cell.imageView?.alphaValue = isDimmed ? 0.5 : 1
-                (cell as? FileNameCellView)?.show(state.flatMap(GitBadge.init))
-                (cell as? FileNameCellView)?.show(item.label)
+                nameCell?.show(state.flatMap(GitBadge.init))
             case .dateModified:
                 cell.textField?.stringValue = item.modificationDate.map(dateFormatter.string(from:)) ?? "—"
             case .size:
@@ -791,9 +793,9 @@ struct FileListView: NSViewRepresentable {
                 if loadedIcons.count >= Self.loadedIconsLimit { loadedIcons.removeAll() }
                 loadedIcons[key] = icon
                 guard let tableView, let row = row(of: url),
-                    let cell = tableView.view(atColumn: 0, row: row, makeIfNecessary: false) as? NSTableCellView
+                    let cell = tableView.view(atColumn: 0, row: row, makeIfNecessary: false) as? FileNameCellView
                 else { return }
-                cell.imageView?.image = icon
+                cell.setIcon(icon)
             }
         }
 

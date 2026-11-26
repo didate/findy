@@ -52,7 +52,7 @@
 - [x] Duplicate (⌘D)
 - [x] Show in Finder (⇧⌘R)
 - [x] Get Info (⌘I): kind, exact size and size on disk, location, dates, owner and permissions; folders and multiple selections are added up
-- [x] Color labels: mark files and folders with one of Finder's seven colors (context menu and File menu), shown as a dot in the list, undoable, and shared with Finder
+- [x] Color labels: mark files and folders with one of Finder's seven colors (context menu and File menu), shown on the icon of a folder and as a dot after the name of a file, undoable, and shared with Finder
 - [x] Search by name in the folder shown and its subfolders (⌘F), with results arriving as they are found
 - [x] Tags in the sidebar: the seven colors, each showing every file and folder marked with it, wherever it is (answered by Spotlight, so only indexed volumes)
 
