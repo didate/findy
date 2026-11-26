@@ -8,6 +8,25 @@ import Foundation
 struct FileActions: Sendable {
     let operations: any FileOperating
 
+    /// Gives each item the color paired with it. Undone by giving back the colors they had.
+    func setLabels(_ changes: [LabelChange], name: String) -> UndoStep {
+        UndoStep(name: name) {
+            var done: [LabelChange] = []
+            var failure: (any Error)?
+            for change in changes {
+                do {
+                    try await operations.setLabel(change.new, on: change.url)
+                    done.append(change)
+                } catch {
+                    failure = error
+                    break
+                }
+            }
+            let back = done.reversed().map(\.reversed)
+            return .init(inverse: back.isEmpty ? nil : setLabels(back, name: name), error: failure)
+        }
+    }
+
     /// Moves items to the Trash. Undone by putting them back.
     func trash(_ urls: [URL], name: String) -> UndoStep {
         UndoStep(name: name) {

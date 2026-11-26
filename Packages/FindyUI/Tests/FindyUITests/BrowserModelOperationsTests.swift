@@ -18,6 +18,9 @@ private struct StallingOperations: FileOperating {
     }
 
     func totalSize(of urls: [URL]) async -> Int64 { 40 }
+    func setLabel(_ label: FileLabel?, on url: URL) async throws {
+        try await real.setLabel(label, on: url)
+    }
     func createFile(in directory: URL, named name: String) async throws -> URL {
         try await real.createFile(in: directory, named: name)
     }
@@ -309,6 +312,38 @@ private struct StallingOperations: FileOperating {
             #expect(names(in: destination) == ["one.txt"])
             #expect(content(of: destination.appendingPathComponent("one.txt")) == "existing")
             #expect(model.alertMessage == nil)
+        }
+    }
+
+    @Test func marksTheSelectionWithAColorAndUndoesIt() async throws {
+        try await withTransferSetup { model, source, _ in
+            model.navigate(to: source)
+            await model.loadTask?.value
+            let one = try #require(model.items.first { $0.name == "one.txt" })
+            model.selection = [one.url]
+            model.setLabel(.blue)
+            await settle(model)
+            #expect(model.items.first { $0.name == "one.txt" }?.label == .blue)
+
+            // Both files turn red; only one of them had a color before.
+            model.selection = Set(model.items.map(\.url))
+            #expect(model.selectionLabel == nil)
+            model.setLabel(.red)
+            await settle(model)
+            #expect(model.items.map(\.label) == [.red, .red])
+            #expect(model.selectionLabel == .red)
+
+            // Undo gives each file back the color it had, not one color for all.
+            model.undo()
+            await settle(model)
+            #expect(model.items.first { $0.name == "one.txt" }?.label == .blue)
+            #expect(model.items.first { $0.name == "two.txt" }?.label == nil)
+
+            model.redo()
+            await settle(model)
+            model.setLabel(nil)
+            await settle(model)
+            #expect(model.items.map(\.label) == [nil, nil])
         }
     }
 

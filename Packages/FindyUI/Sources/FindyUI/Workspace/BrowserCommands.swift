@@ -1,4 +1,5 @@
 import AppKit
+import FindyCore
 import SwiftUI
 
 /// The menu bar commands of a browser window. They act on the active pane of the key window.
@@ -110,6 +111,25 @@ public struct BrowserCommands: Commands {
                 Text("Duplicate", bundle: .module)
             }
             .keyboardShortcut("d", modifiers: .command)
+            .disabled(workspace?.activePane.selection.isEmpty != false)
+
+            Menu {
+                ForEach(FileLabel.menuOrder, id: \.self) { label in
+                    Button {
+                        workspace?.activePane.setLabel(label)
+                    } label: {
+                        Text(verbatim: label.name)
+                    }
+                }
+                Divider()
+                Button {
+                    workspace?.activePane.setLabel(nil)
+                } label: {
+                    Text("No Color", bundle: .module)
+                }
+            } label: {
+                Text("Color Label", bundle: .module)
+            }
             .disabled(workspace?.activePane.selection.isEmpty != false)
 
             Button {

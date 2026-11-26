@@ -43,6 +43,15 @@ public struct LocalFileOperations: FileOperating {
         return destination
     }
 
+    public func setLabel(_ label: FileLabel?, on url: URL) async throws {
+        var url = url
+        var values = URLResourceValues()
+        // Zero is "no label". Setting the label never rewrites the tags attribute (checked on
+        // macOS 26.3: named tags survive a change of label and its removal).
+        values.labelNumber = label?.rawValue ?? 0
+        try url.setResourceValues(values)
+    }
+
     public func trash(_ url: URL) async throws -> URL {
         var trashed: NSURL?
         try FileManager.default.trashItem(at: url, resultingItemURL: &trashed)

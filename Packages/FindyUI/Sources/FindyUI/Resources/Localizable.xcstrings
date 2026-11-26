@@ -41,6 +41,16 @@
         }
       }
     },
+    "%@ label" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Étiquette %@"
+          }
+        }
+      }
+    },
     "%@ of %@" : {
       "localizations" : {
         "fr" : {
@@ -321,6 +331,16 @@
         }
       }
     },
+    "Blue" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bleu"
+          }
+        }
+      }
+    },
     "Calculate Folder Sizes" : {
       "localizations" : {
         "fr" : {
@@ -387,6 +407,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Éditeur de code :"
+          }
+        }
+      }
+    },
+    "Color Label" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Étiquette de couleur"
           }
         }
       }
@@ -691,6 +721,26 @@
         }
       }
     },
+    "Gray" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gris"
+          }
+        }
+      }
+    },
+    "Green" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vert"
+          }
+        }
+      }
+    },
     "Group by Date" : {
       "localizations" : {
         "fr" : {
@@ -881,6 +931,16 @@
         }
       }
     },
+    "No Color" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune couleur"
+          }
+        }
+      }
+    },
     "No Date" : {
       "localizations" : {
         "fr" : {
@@ -971,6 +1031,16 @@
         }
       }
     },
+    "Orange" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orange"
+          }
+        }
+      }
+    },
     "Owner:" : {
       "localizations" : {
         "fr" : {
@@ -1041,12 +1111,32 @@
         }
       }
     },
+    "Purple" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Violet"
+          }
+        }
+      }
+    },
     "Quick Look" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Coup d’œil"
+          }
+        }
+      }
+    },
+    "Red" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rouge"
           }
         }
       }
@@ -1387,6 +1477,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opération en cours…"
+          }
+        }
+      }
+    },
+    "Yellow" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jaune"
           }
         }
       }

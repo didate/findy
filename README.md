@@ -16,6 +16,7 @@ A free, open-source, native file manager for macOS. It runs alongside Finder and
 - Cut, copy, paste, duplicate, rename, new folder, new file, move to Trash
 - Open With, Show in Finder, and Eject for the volumes you plug in
 - Get Info (⌘I): exact size, dates, owner and permissions
+- Color labels on files and folders, the same ones Finder shows
 - Drag and drop that is predictable: a drag moves, Option-drag copies, on any volume
 - Nothing is overwritten silently: Keep Both, Replace or Skip
 - A copy shows its progress and can be stopped at any point, leaving nothing half-written

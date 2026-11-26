@@ -12,6 +12,9 @@ public struct LocalFileSystem: FileSystemProviding {
         .isHiddenKey,
         .fileSizeKey,
         .contentModificationDateKey,
+        // The Finder label lives in the catalog entry, next to the dates: measured at 5 ms more for
+        // 10,000 files. The names of tags are in an extended attribute and would triple the listing.
+        .labelNumberKey,
     ]
 
     public init() {}
@@ -260,7 +263,8 @@ public struct LocalFileSystem: FileSystemProviding {
             linksToFolder: linksToFolder,
             isHidden: values.isHidden ?? false,
             size: isDirectory ? nil : values.fileSize.map(Int64.init),
-            modificationDate: values.contentModificationDate
+            modificationDate: values.contentModificationDate,
+            label: values.labelNumber.flatMap(FileLabel.init(rawValue:))
         )
     }
 }

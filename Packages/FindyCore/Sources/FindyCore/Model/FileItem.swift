@@ -14,6 +14,8 @@ public struct FileItem: Identifiable, Hashable, Sendable {
     /// Logical size in bytes. `nil` for directories until it is computed in the background.
     public var size: Int64?
     public let modificationDate: Date?
+    /// The color the user marked the entry with, if any.
+    public let label: FileLabel?
 
     public var id: URL { url }
 
@@ -29,7 +31,8 @@ public struct FileItem: Identifiable, Hashable, Sendable {
         linksToFolder: Bool = false,
         isHidden: Bool = false,
         size: Int64? = nil,
-        modificationDate: Date? = nil
+        modificationDate: Date? = nil,
+        label: FileLabel? = nil
     ) {
         self.url = url
         self.name = name ?? url.lastPathComponent
@@ -40,5 +43,6 @@ public struct FileItem: Identifiable, Hashable, Sendable {
         self.isHidden = isHidden
         self.size = size
         self.modificationDate = modificationDate
+        self.label = label
     }
 }

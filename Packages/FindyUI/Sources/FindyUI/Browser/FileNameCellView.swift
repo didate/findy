@@ -1,9 +1,19 @@
 import AppKit
+import FindyCore
 
 /// The cell of the Name column: icon, name, and a Git badge at the trailing edge.
 final class FileNameCellView: NSTableCellView {
     let badgeField = NSTextField(labelWithString: "")
+    /// The dot of the color label, before the Git badge.
+    let labelDot = NSImageView()
     private var badgeColor: NSColor?
+
+    func show(_ label: FileLabel?) {
+        labelDot.isHidden = label == nil
+        labelDot.contentTintColor = label?.color
+        labelDot.toolTip = label?.name
+        labelDot.setAccessibilityLabel(label.map { String(localized: "\($0.name) label", bundle: .module) })
+    }
 
     func show(_ badge: GitBadge?) {
         badgeField.stringValue = badge?.text ?? ""

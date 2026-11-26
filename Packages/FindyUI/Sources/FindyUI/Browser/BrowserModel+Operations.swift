@@ -56,6 +56,20 @@ extension BrowserModel {
         perform(actions.rename(url, to: newName, name: ActionName.rename), selecting: [renamed])
     }
 
+    /// The color shared by the whole selection. `nil` when it has none, or several.
+    public var selectionLabel: FileLabel? {
+        let labels = Set(selectedItems.map(\.label))
+        return labels.count == 1 ? labels.first ?? nil : nil
+    }
+
+    /// Marks the selection with `label`, or removes its color when `label` is `nil`.
+    public func setLabel(_ label: FileLabel?) {
+        let changes = selectedItems.filter { $0.label != label }
+            .map { LabelChange(url: $0.url, old: $0.label, new: label) }
+        guard !changes.isEmpty else { return }
+        perform(actions.setLabels(changes, name: ActionName.colorLabel), selecting: changes.map(\.url))
+    }
+
     public func trashSelection() {
         let urls = selectedItems.map(\.url)
         guard !urls.isEmpty else { return }

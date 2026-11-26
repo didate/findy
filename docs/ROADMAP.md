@@ -52,6 +52,7 @@
 - [x] Duplicate (⌘D)
 - [x] Show in Finder (⇧⌘R)
 - [x] Get Info (⌘I): kind, exact size and size on disk, location, dates, owner and permissions; folders and multiple selections are added up
+- [x] Color labels: mark files and folders with one of Finder's seven colors (context menu and File menu), shown as a dot in the list, undoable, and shared with Finder
 - [x] Search by name in the folder shown and its subfolders (⌘F), with results arriving as they are found
 
 ## Next
@@ -70,6 +71,7 @@
 - Browse archives without extracting them
 - Icon and column views
 - SFTP and S3
+- Named tags, as Finder has them, and filtering or grouping by color label
 - Recents and Tags in the sidebar (both need a Spotlight query)
 - Trash in the sidebar (today the Trash is left to Finder; this needs a change of that rule first)
 

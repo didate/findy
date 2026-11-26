@@ -308,6 +308,7 @@ struct FileListView: NSViewRepresentable {
                 cell.textField?.textColor = isDimmed ? .secondaryLabelColor : .labelColor
                 cell.imageView?.alphaValue = isDimmed ? 0.5 : 1
                 (cell as? FileNameCellView)?.show(state.flatMap(GitBadge.init))
+                (cell as? FileNameCellView)?.show(item.label)
             case .dateModified:
                 cell.textField?.stringValue = item.modificationDate.map(dateFormatter.string(from:)) ?? "—"
             case .size:
@@ -493,6 +494,7 @@ struct FileListView: NSViewRepresentable {
             addItem(
                 to: menu, String(localized: "Duplicate", bundle: .module), #selector(menuDuplicate),
                 enabled: count > 0)
+            if count > 0 { menu.addItem(labelItem()) }
             addItem(to: menu, String(localized: "Copy Path", bundle: .module), #selector(menuCopyPath))
             addItem(to: menu, String(localized: "Show in Finder", bundle: .module), #selector(menuShowInFinder))
             menu.addItem(.separator())
@@ -530,6 +532,36 @@ struct FileListView: NSViewRepresentable {
                 title: String(localized: "Open With", bundle: .module), action: nil, keyEquivalent: "")
             item.submenu = submenu
             return item
+        }
+
+        /// The Color Label submenu: the seven colors, the current one checked, and a way to remove it.
+        private func labelItem() -> NSMenuItem {
+            let current = model.selectionLabel
+            let submenu = NSMenu()
+            submenu.autoenablesItems = false
+            for label in FileLabel.menuOrder {
+                let item = NSMenuItem(title: label.name, action: #selector(menuSetLabel(_:)), keyEquivalent: "")
+                item.target = self
+                item.tag = label.rawValue
+                item.image = label.menuImage
+                item.state = label == current ? .on : .off
+                submenu.addItem(item)
+            }
+            submenu.addItem(.separator())
+            let none = NSMenuItem(
+                title: String(localized: "No Color", bundle: .module), action: #selector(menuSetLabel(_:)),
+                keyEquivalent: "")
+            none.target = self
+            none.tag = 0
+            submenu.addItem(none)
+            let item = NSMenuItem(
+                title: String(localized: "Color Label", bundle: .module), action: nil, keyEquivalent: "")
+            item.submenu = submenu
+            return item
+        }
+
+        @objc private func menuSetLabel(_ sender: NSMenuItem) {
+            model.setLabel(FileLabel(rawValue: sender.tag))
         }
 
         @objc private func menuOpenWith(_ sender: NSMenuItem) {
@@ -694,11 +726,20 @@ struct FileListView: NSViewRepresentable {
                 badge.setContentCompressionResistancePriority(.required, for: .horizontal)
                 textField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
                 cell.addSubview(badge)
+                let dot = nameCell.labelDot
+                dot.translatesAutoresizingMaskIntoConstraints = false
+                dot.image = NSImage(systemSymbolName: "circle.fill", accessibilityDescription: nil)
+                dot.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 9, weight: .regular)
+                dot.setContentHuggingPriority(.required, for: .horizontal)
+                dot.setContentCompressionResistancePriority(.required, for: .horizontal)
+                cell.addSubview(dot)
                 NSLayoutConstraint.activate([
                     badge.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -6),
                     badge.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+                    dot.trailingAnchor.constraint(equalTo: badge.leadingAnchor, constant: -4),
+                    dot.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
                 ])
-                trailing = badge.leadingAnchor
+                trailing = dot.leadingAnchor
             }
             NSLayoutConstraint.activate([
                 textField.leadingAnchor.constraint(equalTo: leading, constant: spacing),

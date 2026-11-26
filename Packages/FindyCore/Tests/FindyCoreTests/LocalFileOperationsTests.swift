@@ -76,6 +76,72 @@ import Testing
         }
     }
 
+    // MARK: Labels
+
+    /// The color the disk holds for `url`, read with a fresh URL so nothing cached answers.
+    private func label(of url: URL) throws -> Int? {
+        try URL(fileURLWithPath: url.path).resourceValues(forKeys: [.labelNumberKey]).labelNumber
+    }
+
+    @Test func marksAFileAndAFolderWithAColorAndRemovesIt() async throws {
+        try await withScratchDirectory { directory in
+            let file = directory.appendingPathComponent("été 🌞.txt")
+            let folder = directory.appendingPathComponent("Dossier", isDirectory: true)
+            try write("content", to: file)
+            try fileManager.createDirectory(at: folder, withIntermediateDirectories: false)
+
+            try await operations.setLabel(.red, on: file)
+            try await operations.setLabel(.green, on: folder)
+            #expect(try label(of: file) == 6)
+            #expect(try label(of: folder) == 2)
+            // The listing reports the same colors.
+            let listed = try await LocalFileSystem().contents(of: directory)
+            #expect(listed.first { $0.name == "Dossier" }?.label == .green)
+            #expect(listed.first { $0.name == "été 🌞.txt" }?.label == .red)
+
+            try await operations.setLabel(.blue, on: file)
+            #expect(try label(of: file) == 4)
+            try await operations.setLabel(nil, on: file)
+            #expect(try label(of: file) == 0)
+            #expect(try read(file) == "content")
+        }
+    }
+
+    @Test func aColorLeavesTheNamedTagsOfTheUserAlone() async throws {
+        try await withScratchDirectory { directory in
+            let file = directory.appendingPathComponent("tagged.txt")
+            try write("x", to: file)
+            try (file as NSURL).setResourceValue(["Projet X", "Client"], forKey: .tagNamesKey)
+
+            try await operations.setLabel(.purple, on: file)
+            try await operations.setLabel(nil, on: file)
+
+            let tags = try URL(fileURLWithPath: file.path).resourceValues(forKeys: [.tagNamesKey]).tagNames
+            #expect(tags == ["Projet X", "Client"])
+        }
+    }
+
+    @Test func aColorOnALinkMarksTheLinkNotItsTarget() async throws {
+        try await withScratchDirectory { directory in
+            let target = directory.appendingPathComponent("target.txt")
+            let link = directory.appendingPathComponent("link")
+            try write("t", to: target)
+            try fileManager.createSymbolicLink(at: link, withDestinationURL: target)
+
+            try await operations.setLabel(.orange, on: link)
+
+            #expect(try label(of: target) == 0)
+        }
+    }
+
+    @Test func refusesToMarkWhatIsNotThere() async throws {
+        try await withScratchDirectory { directory in
+            await #expect(throws: (any Error).self) {
+                try await operations.setLabel(.red, on: directory.appendingPathComponent("missing"))
+            }
+        }
+    }
+
     @Test func refusesToCreateAFolderWhereItMayNot() async throws {
         let directory = URL(fileURLWithPath: "/System/findy-test-\(UUID().uuidString)")
         await #expect(throws: (any Error).self) {

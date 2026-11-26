@@ -15,6 +15,10 @@ public protocol FileOperating: Sendable {
     /// Renames an item in place. Returns its new location.
     func rename(_ url: URL, to newName: String) async throws -> URL
 
+    /// Marks an item with a color, or removes its color when `label` is `nil`. Only the Finder
+    /// label changes: the tags the user gave the item by name are left as they are.
+    func setLabel(_ label: FileLabel?, on url: URL) async throws
+
     /// Moves an item to the Trash. Returns its location there.
     func trash(_ url: URL) async throws -> URL
 
