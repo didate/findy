@@ -174,6 +174,16 @@ public struct BrowserCommands: Commands {
             .disabled(workspace == nil)
         }
 
+        CommandGroup(after: .textEditing) {
+            Button {
+                workspace?.activePane.beginSearch()
+            } label: {
+                Text("Find…", bundle: .module)
+            }
+            .keyboardShortcut("f", modifiers: .command)
+            .disabled(workspace == nil)
+        }
+
         CommandGroup(after: .pasteboard) {
             Button {
                 workspace?.activePane.copyPath()

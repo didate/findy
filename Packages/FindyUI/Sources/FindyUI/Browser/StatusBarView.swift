@@ -59,10 +59,19 @@ struct StatusBarView: View {
             if let size = model.selectedSize {
                 parts.append(size.formatted(.byteCount(style: .file)))
             }
+        } else if model.showsSearchResults {
+            parts.append(String(localized: "\(model.items.count) results", bundle: .module))
         } else {
             parts.append(String(localized: "\(model.items.count) items", bundle: .module))
         }
-        if let space = model.availableSpace {
+        if model.searchIsTruncated {
+            parts.append(String(localized: "search stopped there, refine it to see more", bundle: .module))
+        }
+        // A result can come from any depth: say where the selected one is.
+        if let folder = model.selectedResultFolder {
+            parts.append(String(localized: "in \(folder)", bundle: .module))
+        }
+        if !model.showsSearchResults, let space = model.availableSpace {
             let formatted = space.formatted(.byteCount(style: .file))
             parts.append(String(localized: "\(formatted) available", bundle: .module))
         }

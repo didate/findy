@@ -122,6 +122,73 @@ import Testing
         }
     }
 
+    private func search(_ query: String, in directory: URL, includingHidden: Bool = false) async -> [FileItem] {
+        var found: [FileItem] = []
+        for await batch in LocalFileSystem().search(in: directory, matching: query, includingHidden: includingHidden) {
+            found += batch
+        }
+        return found.sorted { $0.url.path < $1.url.path }
+    }
+
+    @Test func findsEntriesAtAnyDepthIgnoringCaseAndAccents() async throws {
+        try await withScratchDirectory { directory in
+            let deep = directory.appendingPathComponent("a/b/c", isDirectory: true)
+            try FileManager.default.createDirectory(at: deep, withIntermediateDirectories: true)
+            try Data("x".utf8).write(to: directory.appendingPathComponent("Rapport.pdf"))
+            try Data().write(to: deep.appendingPathComponent("rapport été 🌞.txt"))
+            try Data().write(to: deep.appendingPathComponent("other.txt"))
+            try FileManager.default.createDirectory(
+                at: directory.appendingPathComponent("a/RAPPORTS"), withIntermediateDirectories: false)
+
+            let found = await search("rapport", in: directory)
+            let accent = await search("ete", in: directory)
+
+            #expect(found.map(\.name) == ["Rapport.pdf", "RAPPORTS", "rapport été 🌞.txt"])
+            #expect(found.first?.size == 1)
+            #expect(found[1].isFolder)
+            #expect(accent.map(\.name) == ["rapport été 🌞.txt"])
+            // Results are spelled like the folder searched, whatever the system calls it.
+            #expect(found.allSatisfy { $0.url.path.hasPrefix(directory.path + "/") })
+            #expect(found[2].url.path == deep.appendingPathComponent("rapport été 🌞.txt").path)
+        }
+    }
+
+    @Test func searchLeavesOutHiddenEntriesPackagesAndLinkTargets() async throws {
+        try await withScratchDirectory { directory in
+            let hidden = directory.appendingPathComponent(".git", isDirectory: true)
+            let package = directory.appendingPathComponent("Tool.app/Contents", isDirectory: true)
+            let outside = directory.appendingPathComponent("outside", isDirectory: true)
+            let inside = directory.appendingPathComponent("inside", isDirectory: true)
+            for folder in [hidden, package, outside, inside] {
+                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            }
+            try Data().write(to: hidden.appendingPathComponent("needle-config"))
+            try Data().write(to: package.appendingPathComponent("needle-binary"))
+            try Data().write(to: outside.appendingPathComponent("needle.txt"))
+            try Data().write(to: directory.appendingPathComponent(".needle-hidden"))
+            // A link back to a folder: following it would list `needle.txt` twice, or forever.
+            try FileManager.default.createSymbolicLink(
+                at: inside.appendingPathComponent("needle-link"), withDestinationURL: outside)
+
+            let visible = await search("needle", in: directory)
+            let all = await search("needle", in: directory, includingHidden: true)
+
+            #expect(visible.map(\.name) == ["needle-link", "needle.txt"])
+            #expect(
+                all.map(\.name)
+                    == [".git/needle-config", ".needle-hidden", "needle-link", "needle.txt"].map {
+                        ($0 as NSString).lastPathComponent
+                    })
+        }
+    }
+
+    @Test func aSearchThatFindsNothingOrHasNowhereToLookJustEnds() async throws {
+        try await withScratchDirectory { directory in
+            #expect(await search("nothing", in: directory).isEmpty)
+            #expect(await search("x", in: directory.appendingPathComponent("missing")).isEmpty)
+        }
+    }
+
     @Test func listsAtLeastTheBootVolume() async {
         let volumes = await LocalFileSystem().mountedVolumes()
 

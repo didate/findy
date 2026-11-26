@@ -11,6 +11,18 @@ private struct FakeFileSystem: FileSystemProviding {
     var listings: [String: [FileItem]] = [:]
     var sizes: [String: Int64] = [:]
     var git: [String: GitInfo] = [:]
+    /// What a search finds, by query, delivered in two batches.
+    var found: [String: [FileItem]] = [:]
+
+    func search(in directory: URL, matching query: String, includingHidden: Bool) -> AsyncStream<[FileItem]> {
+        let results = (found[query] ?? []).filter { includingHidden || !$0.isHidden }
+        return AsyncStream { continuation in
+            let half = results.count / 2
+            if half > 0 { continuation.yield(Array(results[..<half])) }
+            if results.count > half { continuation.yield(Array(results[half...])) }
+            continuation.finish()
+        }
+    }
 
     func contents(of directory: URL) async throws -> [FileItem] {
         guard let items = listings[directory.path] else { throw Unreadable() }
@@ -607,5 +619,107 @@ private struct FakeFileSystem: FileSystemProviding {
         model.showInFinder()
 
         #expect(revealed == [["/fake"], ["/fake/a.txt"]])
+    }
+
+    private func searchableFileSystem() -> FakeFileSystem {
+        var fileSystem = makeFileSystem()
+        fileSystem.found["report"] = [
+            FileItem(url: URL(fileURLWithPath: "/fake/Sub/deep/report b.txt"), size: 1),
+            FileItem(url: URL(fileURLWithPath: "/fake/report a.txt"), size: 2),
+            FileItem(url: URL(fileURLWithPath: "/fake/Sub/.report hidden"), isHidden: true),
+            FileItem(url: URL(fileURLWithPath: "/fake/Sub/reports"), isDirectory: true),
+        ]
+        return fileSystem
+    }
+
+    @Test func searchShowsSortedResultsFromEveryDepthThenTheFolderAgain() async {
+        let model = BrowserModel(location: root, fileSystem: searchableFileSystem())
+        model.reload()
+        await model.loadTask?.value
+
+        model.beginSearch()
+        model.searchText = "report"
+        await model.searchTask?.value
+
+        #expect(model.isSearching)
+        #expect(model.showsSearchResults)
+        #expect(!model.isSearchRunning)
+        #expect(model.items.map(\.name) == ["reports", "report a.txt", "report b.txt"])
+
+        // The status bar says where a result found deeper is.
+        model.selection = [URL(fileURLWithPath: "/fake/Sub/deep/report b.txt")]
+        #expect(model.selectedResultFolder == "Sub/deep")
+        model.selection = [URL(fileURLWithPath: "/fake/report a.txt")]
+        #expect(model.selectedResultFolder == nil)
+
+        model.endSearch()
+        #expect(!model.showsSearchResults)
+        #expect(model.items.map(\.name) == ["Sub", "a.txt", "b.txt"])
+    }
+
+    @Test func searchFollowsTheHiddenFilesSettingAndReportsNothingFound() async {
+        let model = BrowserModel(location: root, fileSystem: searchableFileSystem())
+        model.reload()
+        await model.loadTask?.value
+        model.searchText = "report"
+        await model.searchTask?.value
+
+        model.showsHiddenFiles = true
+        await model.searchTask?.value
+        #expect(model.items.map(\.name).contains(".report hidden"))
+
+        model.searchText = "nothing like it"
+        await model.searchTask?.value
+        #expect(model.items.isEmpty)
+        #expect(model.showsSearchResults)
+        #expect(!model.isSearchRunning)
+    }
+
+    @Test func navigatingAwayEndsTheSearch() async {
+        let model = BrowserModel(location: root, fileSystem: searchableFileSystem())
+        model.reload()
+        await model.loadTask?.value
+        model.beginSearch()
+        model.searchText = "report"
+        await model.searchTask?.value
+
+        model.navigate(to: sub)
+        await model.loadTask?.value
+
+        #expect(!model.isSearching)
+        #expect(model.searchText.isEmpty)
+        #expect(!model.showsSearchResults)
+        #expect(model.items.isEmpty)
+    }
+
+    @Test func aChangeOnDiskRepeatsTheSearchWithoutBlankingTheList() async {
+        let model = BrowserModel(location: root, fileSystem: searchableFileSystem())
+        model.reload()
+        await model.loadTask?.value
+        model.searchText = "report"
+        await model.searchTask?.value
+
+        model.refresh()
+        await model.loadTask?.value
+        // The results stay on screen while the disk is searched again.
+        #expect(model.items.count == 3)
+        await model.searchTask?.value
+
+        #expect(model.items.map(\.name) == ["reports", "report a.txt", "report b.txt"])
+    }
+
+    @Test func gitStatesReachResultsFoundDeeper() async {
+        let info = GitInfo(
+            head: "main", isDetached: false, root: root, gitDirectory: root.appendingPathComponent(".git"))
+        var fileSystem = FakeFileSystem(listings: ["/fake": []], git: ["/fake": info])
+        fileSystem.found["deep"] = [FileItem(url: URL(fileURLWithPath: "/fake/Sub/deep.txt"))]
+        let model = BrowserModel(location: root, fileSystem: fileSystem)
+        model.reload()
+        await model.loadTask?.value
+        await model.statusTask?.value
+        model.searchText = "deep"
+        await model.searchTask?.value
+
+        #expect(model.gitState(of: model.items[0]) == .modified)
     }
 }

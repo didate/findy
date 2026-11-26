@@ -211,6 +211,46 @@
         }
       }
     },
+    "%lld results" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld result"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld results"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld résultat"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld résultats"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Add to Sidebar" : {
       "localizations" : {
         "fr" : {
@@ -297,6 +337,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Effacer le filtre"
+          }
+        }
+      }
+    },
+    "Close Search" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fermer la recherche"
           }
         }
       }
@@ -511,6 +561,16 @@
         }
       }
     },
+    "Find…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher…"
+          }
+        }
+      }
+    },
     "Folders First" : {
       "localizations" : {
         "fr" : {
@@ -597,6 +657,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Départ"
+          }
+        }
+      }
+    },
+    "in %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dans %@"
           }
         }
       }
@@ -742,6 +812,16 @@
       }
     },
     "No Matches" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun résultat"
+          }
+        }
+      }
+    },
+    "No Results" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
@@ -937,6 +1017,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Les éléments remplacés sont placés dans la corbeille."
+          }
+        }
+      }
+    },
+    "Search in “%@” and its subfolders" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher dans « %@ » et ses sous-dossiers"
+          }
+        }
+      }
+    },
+    "search stopped there, refine it to see more" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "recherche arrêtée là, précisez-la pour en voir plus"
+          }
+        }
+      }
+    },
+    "Searching…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche…"
           }
         }
       }

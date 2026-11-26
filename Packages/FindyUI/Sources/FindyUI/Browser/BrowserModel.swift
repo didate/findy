@@ -31,8 +31,25 @@ public final class BrowserModel: Identifiable {
             guard showsHiddenFiles != oldValue else { return }
             rebuildItems()
             saveSettings()
+            // Hidden entries are left out by the search itself: it has to look again.
+            if searchResults != nil { startSearch(keepingResults: true) }
         }
     }
+
+    /// Whether the search bar is shown.
+    public private(set) var isSearching = false
+    /// Bumped each time the user asks for the search bar, so the field can take the focus again.
+    public private(set) var searchFocusRequests = 0
+    /// What to look for under the folder shown, at any depth. Empty: the list shows the folder.
+    public var searchText = "" {
+        didSet { if searchText != oldValue { startSearch(keepingResults: false) } }
+    }
+    /// True while the disk is still being searched.
+    public private(set) var isSearchRunning = false
+    /// True when the search stopped at `searchResultLimit` results.
+    public private(set) var searchIsTruncated = false
+    /// True when the list shows search results instead of the folder's own content.
+    public var showsSearchResults: Bool { searchResults != nil }
 
     /// Whether the list is split in sections by modification date. Remembered per folder when
     /// the pane has a settings store.
@@ -155,6 +172,12 @@ public final class BrowserModel: Identifiable {
     }
     /// The listing in flight. Internal so tests can await it.
     private(set) var loadTask: Task<Void, Never>?
+    /// What the search found so far. `nil` when the list shows the folder itself.
+    private var searchResults: [FileItem]?
+    /// The search in flight. Internal so tests can await it.
+    private(set) var searchTask: Task<Void, Never>?
+    /// A search stops here: more results than this help nobody, and they all have to be sorted.
+    static let searchResultLimit = 5_000
     /// The sort of a big folder in flight. Internal so tests can await it.
     private(set) var arrangeTask: Task<Void, Never>?
     /// Above this many entries a re-sort leaves the main thread. Below, it takes less than a
@@ -336,6 +359,79 @@ public final class BrowserModel: Identifiable {
         }
     }
 
+    // MARK: Search
+
+    /// Shows the search bar, or gives it the focus again.
+    public func beginSearch() {
+        isSearching = true
+        searchFocusRequests += 1
+    }
+
+    /// Hides the search bar and shows the folder again.
+    public func endSearch() {
+        isSearching = false
+        searchText = ""
+    }
+
+    /// The folder holding the only selected search result, relative to the folder shown. `nil`
+    /// outside a search, or when the result sits directly in the folder shown.
+    public var selectedResultFolder: String? {
+        guard showsSearchResults, selection.count == 1, let item = selectedItems.first else { return nil }
+        let folder = (pathInFolderShown(of: item) as NSString).deletingLastPathComponent
+        return folder.isEmpty ? nil : folder
+    }
+
+    /// Looks for `searchText` under the folder shown. A new query replaces the search in flight.
+    /// - Parameter keepingResults: leave the current results on screen until the new ones come,
+    ///   for a search repeated because the disk or a setting changed.
+    private func startSearch(keepingResults: Bool) {
+        searchTask?.cancel()
+        searchTask = nil
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else {
+            let wasShowingResults = searchResults != nil
+            searchResults = nil
+            isSearchRunning = false
+            searchIsTruncated = false
+            if wasShowingResults { rebuildItems() }
+            return
+        }
+        if !keepingResults || searchResults == nil {
+            searchResults = []
+            rebuildItems()
+        }
+        isSearchRunning = true
+        let directory = location
+        let includingHidden = showsHiddenFiles
+        searchTask = Task { [fileSystem] in
+            // A word is typed in a burst: wait for the pause before walking the disk.
+            try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled else { return }
+            var found: [FileItem] = []
+            var isTruncated = false
+            for await batch in fileSystem.search(in: directory, matching: query, includingHidden: includingHidden) {
+                guard !Task.isCancelled else { return }
+                found += batch
+                if found.count >= Self.searchResultLimit {
+                    found.removeSubrange(Self.searchResultLimit...)
+                    isTruncated = true
+                }
+                searchResults = found
+                searchIsTruncated = isTruncated
+                rebuildItems()
+                if isTruncated { break }
+            }
+            guard !Task.isCancelled else { return }
+            if found.isEmpty {
+                // Nothing found: a repeated search must still drop what it kept on screen.
+                searchResults = []
+                searchIsTruncated = false
+                rebuildItems()
+            }
+            isSearchRunning = false
+        }
+    }
+
     // MARK: Groups
 
     /// The section `item` is listed under when the list is grouped by date.
@@ -369,7 +465,15 @@ public final class BrowserModel: Identifiable {
         // Built from the folder shown, not from the entry's own URL: the system may spell the
         // latter `/private/tmp/…` when the repository was found under `/tmp/…` (macOS 26.3).
         let folder = location.path.dropFirst(root.path.count).drop { $0 == "/" }
-        return gitChanges.state(forRelativePath: folder.isEmpty ? item.name : "\(folder)/\(item.name)")
+        let inFolder = pathInFolderShown(of: item)
+        return gitChanges.state(forRelativePath: folder.isEmpty ? inFolder : "\(folder)/\(inFolder)")
+    }
+
+    /// Where `item` is under the folder shown: its name, or a longer path for a search result
+    /// found deeper.
+    func pathInFolderShown(of item: FileItem) -> String {
+        let prefix = location.path.hasSuffix("/") ? location.path : location.path + "/"
+        return item.url.path.hasPrefix(prefix) ? String(item.url.path.dropFirst(prefix.count)) : item.name
     }
 
     /// Reads the Git branch and the free space again. Both are cheap, and both go stale: a copy
@@ -460,7 +564,13 @@ public final class BrowserModel: Identifiable {
                 arrangeTask = nil
                 allItems = listed
                 errorMessage = nil
-                if sort == self.sort, showsHiddenFiles == self.showsHiddenFiles, groupsByDate == self.groupsByDate {
+                if searchResults != nil {
+                    // The list shows results, not this listing. Something changed on disk, so the
+                    // results may be stale: look again, without blanking the list meanwhile.
+                    startSearch(keepingResults: true)
+                } else if sort == self.sort, showsHiddenFiles == self.showsHiddenFiles,
+                    groupsByDate == self.groupsByDate
+                {
                     arranged = sorted
                     applyFilter()
                 } else {
@@ -595,6 +705,14 @@ public final class BrowserModel: Identifiable {
         items = []
         errorMessage = nil
         filterText = ""
+        // A search belongs to the folder it was made in.
+        searchTask?.cancel()
+        searchTask = nil
+        searchResults = nil
+        isSearching = false
+        isSearchRunning = false
+        searchIsTruncated = false
+        searchText = ""
         selection = []
         renamingURL = nil
         selectAfterLoad = nil
@@ -624,8 +742,9 @@ public final class BrowserModel: Identifiable {
     private func rebuildItems() {
         arrangeTask?.cancel()
         arrangeTask = nil
-        let listing = allItems
-        let showsHiddenFiles = showsHiddenFiles
+        let listing = searchResults ?? allItems
+        // The search already left hidden entries out, or kept them, as the setting says.
+        let showsHiddenFiles = showsHiddenFiles || searchResults != nil
         let sizes = calculatesFolderSizes ? folderSizes : [:]
         let sort = sort
         let groupsByDate = groupsByDate

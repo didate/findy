@@ -19,6 +19,10 @@ struct PaneView: View {
                     .accessibilityHidden(true)
             }
             PathBarView(model: model)
+            if model.isSearching {
+                Divider()
+                SearchBarView(model: model)
+            }
             Divider()
             content
             if !model.filterText.isEmpty {
@@ -88,7 +92,10 @@ struct PaneView: View {
             .overlay {
                 if model.items.isEmpty && !model.isLoading {
                     Group {
-                        if model.filterText.isEmpty {
+                        if model.showsSearchResults, model.filterText.isEmpty {
+                            // While the disk is still being searched, an empty list says nothing yet.
+                            if !model.isSearchRunning { Text("No Results", bundle: .module) }
+                        } else if model.filterText.isEmpty {
                             Text("Empty Folder", bundle: .module)
                         } else {
                             Text("No Matches", bundle: .module)

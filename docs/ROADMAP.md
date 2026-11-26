@@ -51,6 +51,7 @@
 - [x] Eject removable volumes, disk images and network shares from the sidebar; the sidebar follows volumes as they come and go
 - [x] Duplicate (⌘D)
 - [x] Show in Finder (⇧⌘R)
+- [x] Search by name in the folder shown and its subfolders (⌘F), with results arriving as they are found
 
 ## Next
 
@@ -64,7 +65,7 @@
 
 - Copy queue with pause, resume and conflict handling
 - Batch rename with regex and preview
-- Spotlight search scoped to the current folder
+- Search inside files (Spotlight), scoped to the current folder
 - Browse archives without extracting them
 - Icon and column views
 - SFTP and S3

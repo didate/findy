@@ -23,7 +23,62 @@ public struct LocalFileSystem: FileSystemProviding {
             options: []
         )
         try Task.checkCancellation()
-        return urls.map(Self.makeItem)
+        return urls.map { Self.makeItem($0) }
+    }
+
+    public func search(
+        in directory: URL, matching query: String, includingHidden: Bool
+    ) -> AsyncStream<[FileItem]> {
+        AsyncStream { continuation in
+            let task = Task.detached(priority: .userInitiated) {
+                Self.walk(directory, matching: query, includingHidden: includingHidden) { batch in
+                    continuation.yield(batch)
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// The search itself. Synchronous: a directory enumerator cannot be iterated from async code.
+    /// It checks for cancellation at every entry, so a new query stops the old walk at once.
+    private static func walk(
+        _ directory: URL, matching query: String, includingHidden: Bool, yield: ([FileItem]) -> Void
+    ) {
+        // The enumerator spells paths its own way (`/private/tmp/x` for `/tmp/x`). Starting from
+        // the resolved path makes every result a plain suffix of it, which is then re-attached to
+        // `directory`: results are spelled like the folder being searched.
+        guard let resolved = realpath(directory.path, nil) else { return }
+        let root = String(cString: resolved)
+        free(resolved)
+        var options: FileManager.DirectoryEnumerationOptions = [.skipsPackageDescendants]
+        if !includingHidden { options.insert(.skipsHiddenFiles) }
+        guard
+            let enumerator = FileManager.default.enumerator(
+                at: URL(filePath: root, directoryHint: .isDirectory),
+                includingPropertiesForKeys: Array(itemKeys), options: options,
+                // A folder that cannot be read is skipped: partial results beat none.
+                errorHandler: { _, _ in true })
+        else { return }
+
+        let prefix = root.hasSuffix("/") ? root : root + "/"
+        var batch: [FileItem] = []
+        var lastYield = ContinuousClock.now
+        for case let url as URL in enumerator {
+            if Task.isCancelled { return }
+            guard url.lastPathComponent.localizedStandardContains(query), url.path.hasPrefix(prefix) else {
+                continue
+            }
+            let relative = String(url.path.dropFirst(prefix.count))
+            batch.append(makeItem(url, shownAs: directory.appendingPathComponent(relative)))
+            // The first results show up quickly; later ones come in larger lots.
+            if batch.count >= 200 || ContinuousClock.now - lastYield > .milliseconds(100) {
+                yield(batch)
+                batch = []
+                lastYield = .now
+            }
+        }
+        if !batch.isEmpty, !Task.isCancelled { yield(batch) }
     }
 
     public func directorySize(of directory: URL) async throws -> Int64 {
@@ -154,11 +209,13 @@ public struct LocalFileSystem: FileSystemProviding {
         return service == "GoogleDrive" ? "Google Drive" : service
     }
 
-    private static func makeItem(_ url: URL) -> FileItem {
+    /// - Parameter shown: the location the item is given, when it should differ from the URL its
+    ///   attributes are read from.
+    private static func makeItem(_ url: URL, shownAs shown: URL? = nil) -> FileItem {
         // An entry can vanish between the listing and this read. It is still listed, by name only,
         // rather than failing the whole directory.
         guard let values = try? url.resourceValues(forKeys: itemKeys) else {
-            return FileItem(url: url)
+            return FileItem(url: shown ?? url)
         }
         let isDirectory = values.isDirectory ?? false
         let isSymbolicLink = values.isSymbolicLink ?? false
@@ -170,7 +227,7 @@ public struct LocalFileSystem: FileSystemProviding {
             linksToFolder = (target.isDirectory ?? false) && !(target.isPackage ?? false)
         }
         return FileItem(
-            url: url,
+            url: shown ?? url,
             name: values.name,
             isDirectory: isDirectory,
             isPackage: values.isPackage ?? false,

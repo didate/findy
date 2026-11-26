@@ -9,6 +9,7 @@ A free, open-source, native file manager for macOS. It runs alongside Finder and
 - Sidebar with your own favorites and your cloud folders, tabs (⌘T) and an optional second pane (⇧⌘D)
 - Path bar you can click or type in (⌘L)
 - Type in the list to filter the current folder instantly
+- Search by name in the current folder and its subfolders (⌘F)
 - Folder sizes and real file icons, computed in the background
 - Group by Date, with sections like Finder's (Today, Yesterday, Previous 7 Days…)
 - Sort order, grouping and hidden files remembered per folder, without `.DS_Store` files

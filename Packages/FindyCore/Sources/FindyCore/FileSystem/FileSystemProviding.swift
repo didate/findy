@@ -5,6 +5,14 @@ public protocol FileSystemProviding: Sendable {
     /// Lists the direct children of `directory`, hidden files included, in no particular order.
     func contents(of directory: URL) async throws -> [FileItem]
 
+    /// Looks under `directory`, at any depth, for entries whose name contains `query`, ignoring
+    /// case and accents. Results arrive in batches as they are found, in no particular order,
+    /// and the search stops when the consumer stops iterating.
+    ///
+    /// Symbolic links are not followed, packages are not entered, folders that cannot be read are
+    /// skipped, and hidden entries are left out unless `includingHidden` is set.
+    func search(in directory: URL, matching query: String, includingHidden: Bool) -> AsyncStream<[FileItem]>
+
     /// Adds up the logical sizes of every file under `directory`, at any depth.
     /// Symbolic links are not followed and cloud-only files are not downloaded.
     func directorySize(of directory: URL) async throws -> Int64
