@@ -13,6 +13,9 @@ public protocol FileSystemProviding: Sendable {
     /// skipped, and hidden entries are left out unless `includingHidden` is set.
     func search(in directory: URL, matching query: String, includingHidden: Bool) -> AsyncStream<[FileItem]>
 
+    /// Reads what Get Info shows about `url`. One entry at a time: this is not for listings.
+    func details(of url: URL) async throws -> FileDetails
+
     /// Adds up the logical sizes of every file under `directory`, at any depth.
     /// Symbolic links are not followed and cloud-only files are not downloaded.
     func directorySize(of directory: URL) async throws -> Int64

@@ -89,6 +89,14 @@ public struct BrowserCommands: Commands {
             .disabled(workspace?.activePane.foldersForSidebar.isEmpty != false)
 
             Button {
+                workspace?.activePane.getInfo()
+            } label: {
+                Text("Get Info", bundle: .module)
+            }
+            .keyboardShortcut("i", modifiers: .command)
+            .disabled(workspace == nil)
+
+            Button {
                 workspace?.activePane.showInFinder()
             } label: {
                 Text("Show in Finder", bundle: .module)

@@ -472,6 +472,7 @@ struct FileListView: NSViewRepresentable {
             menu.autoenablesItems = false
             addItem(to: menu, String(localized: "Open", bundle: .module), #selector(menuOpen), enabled: count > 0)
             if let openWith = openWithItem() { menu.addItem(openWith) }
+            addItem(to: menu, String(localized: "Get Info", bundle: .module), #selector(menuGetInfo))
             addItem(to: menu, String(localized: "Open in Terminal", bundle: .module), #selector(menuTerminal))
             addItem(to: menu, String(localized: "Open in Editor", bundle: .module), #selector(menuEditor))
             addItem(
@@ -545,6 +546,7 @@ struct FileListView: NSViewRepresentable {
 
         @objc private func menuOpen() { model.openSelection() }
         @objc private func menuEditor() { model.openEditor() }
+        @objc private func menuGetInfo() { model.getInfo() }
         @objc private func menuCopyPath() { model.copyPath() }
         @objc private func menuDuplicate() { model.duplicateSelection() }
         @objc private func menuShowInFinder() { model.showInFinder() }

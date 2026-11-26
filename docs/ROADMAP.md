@@ -51,6 +51,7 @@
 - [x] Eject removable volumes, disk images and network shares from the sidebar; the sidebar follows volumes as they come and go
 - [x] Duplicate (⌘D)
 - [x] Show in Finder (⇧⌘R)
+- [x] Get Info (⌘I): kind, exact size and size on disk, location, dates, owner and permissions; folders and multiple selections are added up
 - [x] Search by name in the folder shown and its subfolders (⌘F), with results arriving as they are found
 
 ## Next

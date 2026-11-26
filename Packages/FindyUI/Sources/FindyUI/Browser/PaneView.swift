@@ -52,6 +52,9 @@ struct PaneView: View {
                 OperationProgressView(progress: progress) { model.cancelOperation() }
             }
         }
+        .sheet(item: $model.infoTarget) { target in
+            InfoView(target: target, fileSystem: model.fileSystem) { model.infoTarget = nil }
+        }
         .sheet(item: $model.pendingTransfer) { transfer in
             ConflictSheet(transfer: transfer) { model.resolveTransfer($0) }
         }

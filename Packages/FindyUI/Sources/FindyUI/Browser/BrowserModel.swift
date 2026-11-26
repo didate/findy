@@ -94,6 +94,9 @@ public final class BrowserModel: Identifiable {
     /// A copy or move waiting for the user to settle name conflicts.
     public var pendingTransfer: PendingTransfer?
 
+    /// What the Get Info sheet is showing. `nil` when it is closed.
+    public var infoTarget: InfoTarget?
+
     /// A failure to tell the user about. Cleared when they dismiss it.
     public var alertMessage: String?
 
@@ -315,6 +318,14 @@ public final class BrowserModel: Identifiable {
     public var foldersForSidebar: [URL] {
         let folders = selectedItems.filter(\.isFolder).map(\.url)
         return selection.isEmpty ? [location] : folders
+    }
+
+    // MARK: Get Info
+
+    /// Opens Get Info on the selection, or on the folder shown when nothing is selected.
+    public func getInfo() {
+        let selected = selectedItems.map(\.url)
+        infoTarget = InfoTarget(urls: selected.isEmpty ? [location] : selected)
     }
 
     // MARK: Other applications

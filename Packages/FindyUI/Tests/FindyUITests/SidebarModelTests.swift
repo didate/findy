@@ -26,6 +26,7 @@ private struct FakeLocations: FileSystemProviding {
     }
 
     func contents(of directory: URL) async throws -> [FileItem] { [] }
+    func details(of url: URL) async throws -> FileDetails { FileDetails(url: url, name: url.lastPathComponent) }
     func search(in directory: URL, matching query: String, includingHidden: Bool) -> AsyncStream<[FileItem]> {
         AsyncStream { $0.finish() }
     }

@@ -81,6 +81,31 @@ public struct LocalFileSystem: FileSystemProviding {
         if !batch.isEmpty, !Task.isCancelled { yield(batch) }
     }
 
+    public func details(of url: URL) async throws -> FileDetails {
+        // None of these keys opens the file, and a link is described, not followed.
+        let values = try url.resourceValues(forKeys: [
+            .nameKey, .localizedTypeDescriptionKey, .isDirectoryKey, .isPackageKey, .isSymbolicLinkKey,
+            .fileSizeKey, .totalFileAllocatedSizeKey, .creationDateKey, .contentModificationDateKey,
+        ])
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+        let isDirectory = values.isDirectory ?? false
+        let isFolder = isDirectory && !(values.isPackage ?? false)
+        return FileDetails(
+            url: url,
+            name: values.name ?? url.lastPathComponent,
+            kind: values.localizedTypeDescription,
+            isFolder: isFolder,
+            size: isDirectory ? nil : values.fileSize.map(Int64.init),
+            sizeOnDisk: isDirectory ? nil : values.totalFileAllocatedSize.map(Int64.init),
+            creationDate: values.creationDate,
+            modificationDate: values.contentModificationDate,
+            owner: attributes[.ownerAccountName] as? String,
+            group: attributes[.groupOwnerAccountName] as? String,
+            permissions: (attributes[.posixPermissions] as? NSNumber)?.uint16Value,
+            linkDestination: values.isSymbolicLink == true
+                ? try? FileManager.default.destinationOfSymbolicLink(atPath: url.path) : nil)
+    }
+
     public func directorySize(of directory: URL) async throws -> Int64 {
         let keys: Set<URLResourceKey> = [.isRegularFileKey, .fileSizeKey]
         // Subfolders that cannot be read are skipped: a partial size beats no size.

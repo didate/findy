@@ -189,6 +189,46 @@ import Testing
         }
     }
 
+    @Test func readsTheDetailsOfAFileAFolderAndALink() async throws {
+        try await withScratchDirectory { directory in
+            let file = directory.appendingPathComponent("été 🌞.txt")
+            let folder = directory.appendingPathComponent("Folder", isDirectory: true)
+            let link = directory.appendingPathComponent("link")
+            try Data("hello".utf8).write(to: file)
+            try FileManager.default.setAttributes([.posixPermissions: 0o640], ofItemAtPath: file.path)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
+            try FileManager.default.createSymbolicLink(atPath: link.path, withDestinationPath: "été 🌞.txt")
+            let fileSystem = LocalFileSystem()
+
+            let fileDetails = try await fileSystem.details(of: file)
+            let folderDetails = try await fileSystem.details(of: folder)
+            let linkDetails = try await fileSystem.details(of: link)
+
+            #expect(fileDetails.name == "été 🌞.txt")
+            #expect(fileDetails.size == 5)
+            #expect((fileDetails.sizeOnDisk ?? 0) >= 5)
+            #expect(fileDetails.permissions == 0o640)
+            #expect(fileDetails.permissionString == "rw-r-----")
+            #expect(fileDetails.owner == NSUserName())
+            #expect(fileDetails.kind?.isEmpty == false)
+            #expect(fileDetails.creationDate != nil)
+            #expect(fileDetails.linkDestination == nil)
+            #expect(folderDetails.isFolder)
+            #expect(folderDetails.size == nil)
+            // The link is described, not what it points to.
+            #expect(linkDetails.linkDestination == "été 🌞.txt")
+            #expect(!linkDetails.isFolder)
+        }
+    }
+
+    @Test func detailsOfAMissingEntryAreAnError() async throws {
+        try await withScratchDirectory { directory in
+            await #expect(throws: (any Error).self) {
+                try await LocalFileSystem().details(of: directory.appendingPathComponent("missing"))
+            }
+        }
+    }
+
     @Test func listsAtLeastTheBootVolume() async {
         let volumes = await LocalFileSystem().mountedVolumes()
 

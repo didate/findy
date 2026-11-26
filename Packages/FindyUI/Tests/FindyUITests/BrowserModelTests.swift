@@ -11,6 +11,15 @@ private struct FakeFileSystem: FileSystemProviding {
     var listings: [String: [FileItem]] = [:]
     var sizes: [String: Int64] = [:]
     var git: [String: GitInfo] = [:]
+
+    func details(of url: URL) async throws -> FileDetails {
+        if listings[url.path] != nil {
+            return FileDetails(url: url, name: url.lastPathComponent, kind: "Folder", isFolder: true)
+        }
+        let all = listings.values.flatMap { $0 }
+        guard let item = all.first(where: { $0.url == url }) else { throw Unreadable() }
+        return FileDetails(url: url, name: item.name, kind: "Document", size: item.size, sizeOnDisk: 4_096)
+    }
     /// What a search finds, by query, delivered in two batches.
     var found: [String: [FileItem]] = [:]
 
@@ -721,5 +730,58 @@ private struct FakeFileSystem: FileSystemProviding {
         await model.searchTask?.value
 
         #expect(model.gitState(of: model.items[0]) == .modified)
+    }
+
+    @Test func getInfoIsAboutTheSelectionOrTheFolderShown() async {
+        let model = makeModel()
+        model.reload()
+        await model.loadTask?.value
+
+        model.getInfo()
+        #expect(model.infoTarget?.urls.map(\.path) == ["/fake"])
+
+        model.selection = [URL(fileURLWithPath: "/fake/b.txt"), URL(fileURLWithPath: "/fake/a.txt")]
+        model.getInfo()
+        #expect(model.infoTarget?.urls.map(\.path) == ["/fake/a.txt", "/fake/b.txt"])
+    }
+
+    @Test func infoShowsOneFileWithItsSizes() async {
+        let info = InfoModel(urls: [URL(fileURLWithPath: "/fake/a.txt")], fileSystem: makeFileSystem())
+
+        await info.load()
+
+        #expect(info.single?.name == "a.txt")
+        #expect(info.single?.sizeOnDisk == 4_096)
+        #expect(info.totalSize == 9)
+        #expect(!info.isSizing)
+        #expect(info.errorMessage == nil)
+    }
+
+    @Test func infoAddsUpFilesAndFoldersOfASelection() async {
+        var fileSystem = makeFileSystem()
+        fileSystem.sizes["/fake/Sub"] = 1_000
+        let info = InfoModel(
+            urls: [URL(fileURLWithPath: "/fake/a.txt"), URL(fileURLWithPath: "/fake/b.txt"), sub],
+            fileSystem: fileSystem)
+
+        await info.load()
+
+        #expect(info.single == nil)
+        #expect(info.details.count == 3)
+        #expect(info.totalSize == 1_011)
+        #expect(!info.isSizing)
+    }
+
+    @Test func infoKeepsGoingWhenAFolderCannotBeMeasuredAndSaysWhenNothingCanBeRead() async {
+        // No size is known for Sub in this fake: the file still counts.
+        let partial = InfoModel(urls: [URL(fileURLWithPath: "/fake/a.txt"), sub], fileSystem: makeFileSystem())
+        await partial.load()
+        #expect(partial.totalSize == 9)
+        #expect(!partial.isSizing)
+
+        let missing = InfoModel(urls: [URL(fileURLWithPath: "/fake/gone.txt")], fileSystem: makeFileSystem())
+        await missing.load()
+        #expect(missing.details.isEmpty)
+        #expect(missing.errorMessage != nil)
     }
 }

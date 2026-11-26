@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ (%@ bytes)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$@ octets)"
+          }
+        }
+      }
+    },
     "%@ (default)" : {
       "localizations" : {
         "fr" : {
@@ -251,6 +261,16 @@
         }
       }
     },
+    ", %@ on disk" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", %@ sur le disque"
+          }
+        }
+      }
+    },
     "Add to Sidebar" : {
       "localizations" : {
         "fr" : {
@@ -307,6 +327,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Calculer la taille des dossiers"
+          }
+        }
+      }
+    },
+    "Calculating…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calcul…"
           }
         }
       }
@@ -421,6 +451,16 @@
         }
       }
     },
+    "Created:" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créé le :"
+          }
+        }
+      }
+    },
     "Cut" : {
       "localizations" : {
         "fr" : {
@@ -457,6 +497,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Documents"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminé"
           }
         }
       }
@@ -591,6 +641,16 @@
         }
       }
     },
+    "Get Info" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lire les informations"
+          }
+        }
+      }
+    },
     "Git branch %@" : {
       "localizations" : {
         "fr" : {
@@ -681,6 +741,16 @@
         }
       }
     },
+    "Kind:" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type :"
+          }
+        }
+      }
+    },
     "Locations" : {
       "localizations" : {
         "fr" : {
@@ -697,6 +767,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Modifié"
+          }
+        }
+      }
+    },
+    "Modified:" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifié le :"
           }
         }
       }
@@ -891,6 +971,16 @@
         }
       }
     },
+    "Owner:" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Propriétaire :"
+          }
+        }
+      }
+    },
     "Paste" : {
       "localizations" : {
         "fr" : {
@@ -907,6 +997,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Chemin"
+          }
+        }
+      }
+    },
+    "Permissions:" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisations :"
+          }
+        }
+      }
+    },
+    "Points to:" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pointe vers :"
           }
         }
       }
@@ -1101,6 +1211,16 @@
         }
       }
     },
+    "Size:" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taille :"
+          }
+        }
+      }
+    },
     "Skip" : {
       "localizations" : {
         "fr" : {
@@ -1191,6 +1311,16 @@
         }
       }
     },
+    "Unknown" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inconnue"
+          }
+        }
+      }
+    },
     "untitled folder" : {
       "localizations" : {
         "fr" : {
@@ -1237,6 +1367,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Utilisée par « Ouvrir dans le terminal »."
+          }
+        }
+      }
+    },
+    "Where:" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emplacement :"
           }
         }
       }

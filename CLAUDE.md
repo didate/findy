@@ -81,7 +81,8 @@ findy/
 │   │   └── Tests/
 │   └── FindyUI/             # Vues SwiftUI et contrôleurs AppKit
 │       ├── Sources/FindyUI/
-│       │   ├── Browser/     # Panneau, liste (NSTableView), filtre, modèle d'un panneau
+│       │   ├── Browser/     # Panneau, liste (NSTableView), filtre, recherche, modèle d'un panneau
+│       │   ├── Info/        # Lire les informations (⌘I)
 │       │   ├── Operations/  # Étapes annulables, historique d'annulation, presse-papiers
 │       │   ├── Sidebar/
 │       │   ├── PathBar/
