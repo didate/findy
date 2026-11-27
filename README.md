@@ -2,11 +2,17 @@
 
 A free, open-source, native file manager for macOS. It runs alongside Finder and focuses on speed and reliability.
 
-> Early development (v0.3). The features below work.
+> Early development (v0.4). The features below work.
+
+![Findy showing a project folder: Git state of each file, color labels, and the sidebar with favorites, locations and tags](docs/screenshots/main.png)
+
+| Two panes | Disk Usage |
+|---|---|
+| ![Two panes side by side, each on its own folder](docs/screenshots/dual-pane.png) | ![The Disk Usage sheet listing what takes the space in a folder, largest first](docs/screenshots/disk-usage.png) |
 
 ## Features
 
-- Sidebar with your own favorites and your cloud folders, tabs (⌘T) and an optional second pane (⇧⌘D)
+- Sidebar with your own favorites, your home and cloud folders, tabs (⌘T) and an optional second pane (⇧⌘D)
 - Path bar you can click or type in (⌘L)
 - Type in the list to filter the current folder instantly
 - Search by name in the current folder and its subfolders (⌘F)
@@ -16,6 +22,7 @@ A free, open-source, native file manager for macOS. It runs alongside Finder and
 - Cut, copy, paste, duplicate, rename, new folder, new file, move to Trash
 - Open With, Show in Finder, and Eject for the volumes you plug in
 - Get Info (⌘I): exact size, dates, owner and permissions
+- Disk Usage (⌥⌘U): what takes the space in a folder, largest first, and a way to trash it
 - Color labels on files and folders, the same ones Finder shows, and a Tags section in the sidebar to find everything of a color
 - Drag and drop that is predictable: a drag moves, Option-drag copies, on any volume
 - Nothing is overwritten silently: Keep Both, Replace or Skip
