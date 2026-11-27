@@ -67,6 +67,16 @@ private struct FakeLocations: FileSystemProviding {
         }
     }
 
+    @Test func theHomeFolderIsALocationNamedAfterTheUserEvenWithoutItsFavorite() async throws {
+        try await withModel { model in
+            model.removeFavorite(home)
+
+            #expect(model.favorites.count == 4)
+            #expect(model.home.name == "someone")
+            #expect(model.home.url == home.canonicalLocation)
+        }
+    }
+
     @Test func addsOnlyFoldersAndNamesThemAfterTheFolder() async throws {
         let fileSystem = FakeLocations(folders: ["/Work/DHIS2"])
         try await withModel(fileSystem) { model in

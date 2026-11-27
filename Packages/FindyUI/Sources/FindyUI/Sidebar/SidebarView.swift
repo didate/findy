@@ -51,6 +51,10 @@ struct SidebarView: View {
                     }
                     .tag(SidebarSelection.folder(location.url))
                 }
+                SidebarRow(name: model.home.name, systemImage: model.home.systemImage) { urls, move in
+                    onDrop(model.home.url, urls, move)
+                }
+                .tag(SidebarSelection.folder(model.home.url))
                 ForEach(model.volumes) { volume in
                     HStack(spacing: 4) {
                         SidebarRow(

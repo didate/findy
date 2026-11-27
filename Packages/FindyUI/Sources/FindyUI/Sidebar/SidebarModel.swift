@@ -16,6 +16,9 @@ public final class SidebarModel {
     }
 
     public var favorites: [Favorite] { store.urls.map(favorite(for:)) }
+    /// The user's home folder, listed under Locations by its own name, as Finder does. It stays
+    /// there even when the Home favorite was removed.
+    public let home: Favorite
     public private(set) var cloudLocations: [Volume] = []
     public private(set) var volumes: [Volume] = []
     /// A failure to tell the user about. Cleared when they dismiss it.
@@ -35,6 +38,7 @@ public final class SidebarModel {
     ) {
         self.fileSystem = fileSystem
         self.store = store
+        self.home = Favorite(url: home.canonicalLocation, name: home.lastPathComponent, systemImage: "house")
 
         func folder(_ name: String) -> URL {
             home.appendingPathComponent(name, isDirectory: true).canonicalLocation
