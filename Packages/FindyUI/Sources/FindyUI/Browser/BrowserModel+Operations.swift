@@ -82,6 +82,19 @@ extension BrowserModel {
         perform(actions.trash(urls, name: ActionName.moveToTrash))
     }
 
+    /// Moves `url` to the Trash, wherever it is, as one undoable action. Returns what went wrong,
+    /// in words for the user, or `nil` when it is in the Trash.
+    public func moveToTrash(_ url: URL) async -> String? {
+        let error = await history.perform(actions.trash([url], name: ActionName.moveToTrash))
+        refresh()
+        if let error { return ErrorMessage.text(for: error) }
+        // Nothing ran when another operation was under way: say so rather than pretend.
+        if await operations.itemExists(at: url) {
+            return String(localized: "Another operation is in progress. Try again in a moment.", bundle: .module)
+        }
+        return nil
+    }
+
     public func undo() {
         start {
             if let error = await self.history.undo() { self.report(error) }

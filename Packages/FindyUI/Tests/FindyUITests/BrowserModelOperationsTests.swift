@@ -517,4 +517,56 @@ private struct StallingOperations: FileOperating {
             #expect(model.renamingURL == nil)
         }
     }
+
+    @Test func trashesAnEntryFromAnywhereAsOneUndoableAction() async throws {
+        try await withModel { model, directory in
+            let nested = directory.appendingPathComponent("deep/down", isDirectory: true)
+            try fileManager.createDirectory(at: nested, withIntermediateDirectories: true)
+            let file = nested.appendingPathComponent("été 🌞.bin")
+            try Data("x".utf8).write(to: file)
+
+            let failure = await model.moveToTrash(file)
+
+            #expect(failure == nil)
+            #expect(names(in: nested) == [])
+
+            model.undo()
+            await settle(model)
+            #expect(names(in: nested) == ["été 🌞.bin"])
+
+            let missing = await model.moveToTrash(nested.appendingPathComponent("nothing"))
+            #expect(missing != nil)
+        }
+    }
+
+    @Test func diskUsageMeasuresTheSelectedFolderOrTheOneShown() async throws {
+        try await withModel { model, directory in
+            try fileManager.createDirectory(
+                at: directory.appendingPathComponent("Folder"), withIntermediateDirectories: true)
+            try Data().write(to: directory.appendingPathComponent("a.txt"))
+            model.reload()
+            await settle(model)
+            // The entries as the pane lists them: their URLs are the ones a selection holds.
+            let folder = try #require(model.items.first { $0.name == "Folder" }).url
+            let file = try #require(model.items.first { $0.name == "a.txt" }).url
+            let shown = model.location
+
+            #expect(model.diskUsageFolder == shown)
+            model.selection = [file]
+            #expect(model.diskUsageFolder == nil)
+            model.showDiskUsage()
+            #expect(model.diskUsageTarget == nil)
+            model.selection = [folder]
+            model.showDiskUsage()
+            #expect(model.diskUsageTarget?.url == folder)
+
+            model.reveal(folder, isFolder: true)
+            await settle(model)
+            #expect(model.location.lastPathComponent == "Folder")
+            model.reveal(file, isFolder: false)
+            await settle(model)
+            #expect(model.location == shown)
+            #expect(model.selection.map(\.lastPathComponent) == ["a.txt"])
+        }
+    }
 }

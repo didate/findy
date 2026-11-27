@@ -98,6 +98,14 @@ public struct BrowserCommands: Commands {
             .disabled(workspace == nil)
 
             Button {
+                workspace?.activePane.showDiskUsage()
+            } label: {
+                Text("Show Disk Usage", bundle: .module)
+            }
+            .keyboardShortcut("u", modifiers: [.command, .option])
+            .disabled(workspace?.activePane.diskUsageFolder == nil)
+
+            Button {
                 workspace?.activePane.showInFinder()
             } label: {
                 Text("Show in Finder", bundle: .module)

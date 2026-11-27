@@ -99,6 +99,8 @@ public final class BrowserModel: Identifiable {
 
     /// What the Get Info sheet is showing. `nil` when it is closed.
     public var infoTarget: InfoTarget?
+    /// The folder the Disk Usage sheet is measuring. `nil` when it is closed.
+    public var diskUsageTarget: DiskUsageTarget?
 
     /// A failure to tell the user about. Cleared when they dismiss it.
     public var alertMessage: String?
@@ -347,6 +349,33 @@ public final class BrowserModel: Identifiable {
     public func getInfo() {
         let selected = selectedItems.map(\.url)
         infoTarget = InfoTarget(urls: selected.isEmpty ? [location] : selected)
+    }
+
+    // MARK: Disk usage
+
+    /// The folder Disk Usage would measure: the selected one, or the folder shown when nothing
+    /// is selected. `nil` when the selection is anything else, or when a color is shown and no
+    /// folder stands behind the list.
+    public var diskUsageFolder: URL? {
+        let selected = selectedItems
+        if selected.isEmpty { return shownLabel == nil ? location : nil }
+        guard selected.count == 1, let item = selected.first, item.isFolder else { return nil }
+        return item.url
+    }
+
+    public func showDiskUsage() {
+        guard let folder = diskUsageFolder else { return }
+        diskUsageTarget = DiskUsageTarget(url: folder)
+    }
+
+    /// Shows `url` in this pane: a folder is opened, anything else is selected in its folder.
+    public func reveal(_ url: URL, isFolder: Bool) {
+        if isFolder {
+            navigate(to: url)
+        } else {
+            navigate(to: url.deletingLastPathComponent())
+            selectAfterLoad = [url.lastPathComponent]
+        }
     }
 
     // MARK: Other applications

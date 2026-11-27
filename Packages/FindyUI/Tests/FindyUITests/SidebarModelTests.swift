@@ -32,6 +32,9 @@ private struct FakeLocations: FileSystemProviding {
     }
     func items(labeled label: FileLabel) -> AsyncStream<[FileItem]> { AsyncStream { $0.finish() } }
     func directorySize(of directory: URL) async throws -> Int64 { 0 }
+    func diskUsage(of directory: URL) -> AsyncThrowingStream<DiskUsageEvent, any Error> {
+        AsyncThrowingStream { $0.finish() }
+    }
     func changes(in directory: URL) -> AsyncStream<Void> { AsyncStream { $0.finish() } }
     func changes(under root: URL) -> AsyncStream<Void> { AsyncStream { $0.finish() } }
 

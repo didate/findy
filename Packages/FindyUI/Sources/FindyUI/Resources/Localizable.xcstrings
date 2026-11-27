@@ -181,6 +181,86 @@
         }
       }
     },
+    "%lld files, on disk" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld file, on disk"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld files, on disk"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld fichier, sur le disque"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld fichiers, sur le disque"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld folders couldn’t be read and are not counted." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld folder couldn’t be read and is not counted."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld folders couldn’t be read and are not counted."
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dossier n’a pas pu être lu et n’est pas compté."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dossiers n’ont pas pu être lus et ne sont pas comptés."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld items" : {
       "localizations" : {
         "en" : {
@@ -271,6 +351,46 @@
         }
       }
     },
+    "%lld smaller files" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld smaller file"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld smaller files"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld fichier plus petit"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld fichiers plus petits"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     ", %@ on disk" : {
       "localizations" : {
         "fr" : {
@@ -307,6 +427,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Un élément nommé « %@ » existe déjà à cet emplacement."
+          }
+        }
+      }
+    },
+    "Another operation is in progress. Try again in a moment." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une autre opération est en cours. Réessayez dans un instant."
           }
         }
       }
@@ -821,6 +951,56 @@
         }
       }
     },
+    "Measure Again" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mesurer à nouveau"
+          }
+        }
+      }
+    },
+    "Measuring… %lld files so far" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Measuring… %lld file so far"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Measuring… %lld files so far"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Mesure en cours… %lld fichier pour l’instant"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Mesure en cours… %lld fichiers pour l’instant"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Modified" : {
       "localizations" : {
         "fr" : {
@@ -1271,6 +1451,16 @@
         }
       }
     },
+    "Show Disk Usage" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher l’occupation du disque"
+          }
+        }
+      }
+    },
     "Show Hidden Files" : {
       "localizations" : {
         "fr" : {
@@ -1287,6 +1477,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher dans le Finder"
+          }
+        }
+      }
+    },
+    "Show in List" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher dans la liste"
           }
         }
       }
@@ -1387,6 +1587,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "L’opération n’a pas pu être effectuée."
+          }
+        }
+      }
+    },
+    "The space is freed once the Trash is emptied." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’espace est libéré une fois la corbeille vidée."
           }
         }
       }

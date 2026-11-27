@@ -27,6 +27,14 @@ public protocol FileSystemProviding: Sendable {
     /// Symbolic links are not followed and cloud-only files are not downloaded.
     func directorySize(of directory: URL) async throws -> Int64
 
+    /// Measures the space `directory` takes on its volume and what takes it. The direct children
+    /// arrive one by one, each complete with everything under it, until the consumer stops
+    /// iterating. Throws when `directory` itself cannot be read.
+    ///
+    /// Sizes are those allocated on disk. Symbolic links are not followed, cloud-only files are
+    /// not downloaded and count for nothing, and other volumes mounted inside are left out.
+    func diskUsage(of directory: URL) -> AsyncThrowingStream<DiskUsageEvent, any Error>
+
     /// Yields each time the direct children of `directory` change, until the consumer stops iterating.
     func changes(in directory: URL) -> AsyncStream<Void>
 

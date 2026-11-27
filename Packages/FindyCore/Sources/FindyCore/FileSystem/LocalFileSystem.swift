@@ -163,6 +163,20 @@ public struct LocalFileSystem: FileSystemProviding {
         return total
     }
 
+    public func diskUsage(of directory: URL) -> AsyncThrowingStream<DiskUsageEvent, any Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task.detached(priority: .userInitiated) {
+                do {
+                    try DiskUsageScanner.scan(directory) { continuation.yield($0) }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
     public func changes(in directory: URL) -> AsyncStream<Void> {
         DirectoryWatcher.changes(in: directory)
     }

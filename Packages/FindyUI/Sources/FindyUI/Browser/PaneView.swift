@@ -55,6 +55,13 @@ struct PaneView: View {
         .sheet(item: $model.infoTarget) { target in
             InfoView(target: target, fileSystem: model.fileSystem) { model.infoTarget = nil }
         }
+        .sheet(item: $model.diskUsageTarget) { target in
+            DiskUsageView(
+                target: target, fileSystem: model.fileSystem,
+                trash: { await model.moveToTrash($0) },
+                onReveal: { model.reveal($0, isFolder: $1) },
+                onDone: { model.diskUsageTarget = nil })
+        }
         .sheet(item: $model.pendingTransfer) { transfer in
             ConflictSheet(transfer: transfer) { model.resolveTransfer($0) }
         }

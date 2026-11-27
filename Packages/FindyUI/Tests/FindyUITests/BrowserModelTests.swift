@@ -54,6 +54,10 @@ private struct FakeFileSystem: FileSystemProviding {
         return size
     }
 
+    func diskUsage(of directory: URL) -> AsyncThrowingStream<DiskUsageEvent, any Error> {
+        AsyncThrowingStream { $0.finish() }
+    }
+
     func changes(in directory: URL) -> AsyncStream<Void> {
         AsyncStream { $0.finish() }
     }

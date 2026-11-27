@@ -82,6 +82,7 @@ findy/
 │   └── FindyUI/             # Vues SwiftUI et contrôleurs AppKit
 │       ├── Sources/FindyUI/
 │       │   ├── Browser/     # Panneau, liste (NSTableView), filtre, recherche, modèle d'un panneau
+│       │   ├── DiskUsage/   # Occupation du disque d'un dossier (⌥⌘U)
 │       │   ├── Info/        # Lire les informations (⌘I)
 │       │   ├── Operations/  # Étapes annulables, historique d'annulation, presse-papiers
 │       │   ├── Sidebar/
