@@ -57,6 +57,13 @@
 - [x] Tags in the sidebar: the seven colors, each showing every file and folder marked with it, wherever it is (answered by Spotlight, so only indexed volumes)
 - [x] v0.3.0 published on GitHub and in the Homebrew tap
 
+## v0.4
+
+- [x] Disk Usage (⌥⌘U): what takes the space in a folder, largest first, level by level, with Move to Trash (undoable) and Show in List. Sizes are those on disk; cloud-only files count for nothing and are not downloaded
+- [x] The home folder under Locations, by its own name, as in Finder
+- [x] Screenshots in the README
+- [x] v0.4.0 published on GitHub and in the Homebrew tap
+
 ## Next
 
 - [ ] Drop on tabs. The tabs are the system's own (see `docs/decisions/0002-native-window-tabs.md`) and AppKit offers no way to receive a drop on them: this needs either a custom tab bar or another gesture
@@ -75,6 +82,7 @@
 - SFTP and S3
 - Named tags, as Finder has them, and filtering or grouping by color label
 - Recents in the sidebar (needs a Spotlight query)
+- Disk Usage: a treemap, developer caches (`node_modules`, DerivedData, build caches) pointed out, hard links and APFS clones counted once, purgeable space and local snapshots explained
 - Trash in the sidebar (today the Trash is left to Finder; this needs a change of that rule first)
 
 ## Not planned
